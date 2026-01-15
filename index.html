@@ -137,5 +137,21 @@
       </div>
     </div>
   </div>
+  <script>
+    const menu = document.querySelector('.window-menu');
+    const menuItems = document.querySelectorAll('.menu-item');
+
+    document.addEventListener('click', (event) => {
+      if (!menu.contains(event.target)) {
+        menu.removeAttribute('open');
+      }
+    });
+
+    menuItems.forEach((item) => {
+      item.addEventListener('click', () => {
+        menu.removeAttribute('open');
+      });
+    });
+  </script>
 </body>
 </html>

@@ -77,6 +77,10 @@ body {
   background: #fdfdfd;
 }
 
+.window-menu[open] .menu-button {
+  background: #dcdcdc;
+}
+
 .menu-line {
   height: 3px;
   background: #333;
@@ -103,6 +107,11 @@ body {
   padding: 6px 10px;
   font-size: 18px;
   cursor: pointer;
+}
+
+.menu-item:hover {
+  background: #0a5bb5;
+  color: #fff;
 }
 
 .menu-item:active {
