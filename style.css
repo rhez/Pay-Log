@@ -52,6 +52,7 @@ body {
 .window-menu {
   position: absolute;
   left: 16px;
+  top: 10px;
 }
 
 .window-menu summary {
@@ -83,7 +84,9 @@ body {
 }
 
 .menu-dropdown {
-  margin-top: 8px;
+  position: absolute;
+  top: 40px;
+  left: 0;
   background: #fff;
   border: 2px solid #7a7a7a;
   border-radius: 10px;
