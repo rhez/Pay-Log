@@ -49,23 +49,62 @@ body {
   letter-spacing: 0.5px;
 }
 
-.window-controls {
+.window-menu {
   position: absolute;
   left: 16px;
-  display: flex;
-  gap: 12px;
 }
 
-.control-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+.window-menu summary {
+  list-style: none;
+}
+
+.window-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-button {
+  width: 40px;
+  height: 32px;
   border: 2px solid #7a7a7a;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  background: #fdfdfd;
 }
 
-.dot-red { background: #e93024; }
-.dot-yellow { background: #d99510; }
-.dot-green { background: #1ea827; }
+.menu-line {
+  height: 3px;
+  background: #333;
+  border-radius: 2px;
+}
+
+.menu-dropdown {
+  margin-top: 8px;
+  background: #fff;
+  border: 2px solid #7a7a7a;
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.menu-item:active {
+  background: #e0e0e0;
+}
 
 .content {
   padding: 16px;
@@ -132,6 +171,10 @@ select {
   text-align: center;
 }
 
+.button:active {
+  background: #dcdcdc;
+}
+
 .date-row .label { width: 110px; }
 .date-row .input-group { flex: 1; }
 
@@ -169,11 +212,16 @@ textarea {
   width: 230px;
 }
 
+.amount-row .input-group {
+  justify-content: space-between;
+}
+
 .radio-set {
   display: flex;
   align-items: center;
   gap: 18px;
   font-size: 22px;
+  margin-left: auto;
 }
 
 .radio-set input[type="radio"] {
@@ -245,15 +293,6 @@ textarea {
   padding: 6px 8px;
 }
 
-.status-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #00c400, #0c7f08);
-  border: 2px solid #0d6a0a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 700;
+.status-emoji {
+  font-size: 26px;
 }
