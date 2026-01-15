@@ -25,3 +25,13 @@ The server exposes:
 
 - `GET /api/members` for the member list (pre-formatted with zero-padded IDs).
 - `GET /api/members/:id` for the selected member's balance and transactions.
+
+To import members, click **Import Members** and choose a `.csv` or `.xlsx` file
+formatted as:
+
+```
+<id>, <first_name>, <last_name>
+```
+
+Imported members start with a balance of `0`. If a member ID already exists,
+their balance is preserved.

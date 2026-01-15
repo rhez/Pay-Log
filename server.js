@@ -2,6 +2,8 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
+import multer from "multer";
+import xlsx from "xlsx";
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
@@ -11,12 +13,45 @@ const app = express();
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
+const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(express.static(__dirname));
 
 const formatMemberName = (id, firstName, lastName, padLength) => {
   const paddedId = String(id).padStart(padLength, "0");
   return `${paddedId} – ${firstName} ${lastName}`;
+};
+
+const parseMembersFromCsv = (buffer) => {
+  const text = buffer.toString("utf8");
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split(",").map((value) => value.trim()))
+    .filter((parts) => parts.length >= 3)
+    .map(([id, firstName, lastName]) => ({
+      id,
+      firstName,
+      lastName,
+    }));
+};
+
+const parseMembersFromXlsx = (buffer) => {
+  const workbook = xlsx.read(buffer, { type: "buffer" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: false });
+
+  return rows
+    .map((row) => row.map((value) => String(value ?? "").trim()))
+    .filter((row) => row.filter(Boolean).length)
+    .map(([id, firstName, lastName]) => ({
+      id,
+      firstName,
+      lastName,
+    }))
+    .filter((member) => member.id && member.firstName && member.lastName);
 };
 
 app.get("/api/members", async (req, res) => {
@@ -78,6 +113,71 @@ app.get("/api/members/:id", async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to load member data." });
+  }
+});
+
+app.post("/api/members/import", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: "No file uploaded." });
+    return;
+  }
+
+  const filename = req.file.originalname.toLowerCase();
+  let members = [];
+
+  if (filename.endsWith(".csv")) {
+    members = parseMembersFromCsv(req.file.buffer);
+  } else if (filename.endsWith(".xlsx")) {
+    members = parseMembersFromXlsx(req.file.buffer);
+  } else {
+    res.status(400).json({ error: "Unsupported file type." });
+    return;
+  }
+
+  const validMembers = members
+    .map((member) => ({
+      id: Number(member.id),
+      firstName: member.firstName,
+      lastName: member.lastName,
+    }))
+    .filter(
+      (member) =>
+        Number.isInteger(member.id) &&
+        member.firstName &&
+        member.lastName
+    );
+
+  if (!validMembers.length) {
+    res.json({ imported: 0, skipped: members.length });
+    return;
+  }
+
+  try {
+    const values = validMembers
+      .map(
+        (member, index) =>
+          `($${index * 3 + 1}, $${index * 3 + 2}, $${index * 3 + 3})`
+      )
+      .join(", ");
+    const params = validMembers.flatMap((member) => [
+      member.id,
+      member.firstName,
+      member.lastName,
+    ]);
+
+    const insertResult = await pool.query(
+      `INSERT INTO "Members" (id, first_name, last_name)
+       VALUES ${values}
+       ON CONFLICT (id) DO NOTHING`,
+      params
+    );
+
+    res.json({
+      imported: insertResult.rowCount,
+      skipped: validMembers.length - insertResult.rowCount,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to import members." });
   }
 });
 

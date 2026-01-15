@@ -28,7 +28,8 @@
         <div class="input-group">
           <select id="memberSelect"></select>
         </div>
-        <button class="button" type="button">Import Members</button>
+        <button class="button" id="importMembersButton" type="button">Import Members</button>
+        <input id="memberImportInput" type="file" accept=".csv,.xlsx" hidden />
       </div>
 
       <div class="row date-row">
@@ -91,6 +92,8 @@
     const memberSelect = document.querySelector('#memberSelect');
     const balanceValue = document.querySelector('#balanceValue');
     const transactionsBody = document.querySelector('#transactionsBody');
+    const importMembersButton = document.querySelector('#importMembersButton');
+    const memberImportInput = document.querySelector('#memberImportInput');
 
     const closeMenu = () => {
       menu.classList.remove('open');
@@ -176,6 +179,7 @@
       const response = await fetch('/api/members');
       if (!response.ok) {
         memberSelect.innerHTML = '<option>No members</option>';
+        memberSelect.disabled = true;
         return;
       }
 
@@ -184,6 +188,7 @@
 
       if (!data.members.length) {
         memberSelect.innerHTML = '<option>No members</option>';
+        memberSelect.disabled = true;
         balanceValue.textContent = '$0.00';
         renderTransactions([]);
         return;
@@ -198,6 +203,7 @@
 
       const firstMember = data.members[0];
       memberSelect.value = firstMember.id;
+      memberSelect.disabled = false;
       await loadMember(firstMember.id);
     };
 
@@ -206,6 +212,31 @@
       if (Number.isInteger(selectedId)) {
         loadMember(selectedId);
       }
+    });
+
+    importMembersButton.addEventListener('click', () => {
+      memberImportInput.click();
+    });
+
+    memberImportInput.addEventListener('change', async (event) => {
+      const [file] = event.target.files;
+      if (!file) {
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/members/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        await loadMembers();
+      }
+
+      memberImportInput.value = '';
     });
 
     loadMembers();
