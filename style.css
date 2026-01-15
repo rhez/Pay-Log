@@ -135,11 +135,28 @@ select {
 .date-row .label { width: 110px; }
 .date-row .input-group { flex: 1; }
 
-.balance {
+.date-row input[type="text"] {
+  width: 230px;
+}
+
+.balance-group {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.balance-label {
+  width: auto;
+}
+
+.balance {
   font-size: 22px;
   font-weight: 600;
   color: #111;
+  text-align: right;
+  min-width: 120px;
 }
 
 textarea {
