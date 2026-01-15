@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS "Members" (
+  id SERIAL PRIMARY KEY,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  balance NUMERIC(12, 2) NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS "Transactions" (
+  id SERIAL PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES "Members"(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  amount NUMERIC(12, 2) NOT NULL
+);

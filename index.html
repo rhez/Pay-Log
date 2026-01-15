@@ -26,9 +26,7 @@
       <div class="row">
         <div class="label">Member:</div>
         <div class="input-group">
-          <select>
-            <option>001 - John Smith</option>
-          </select>
+          <select id="memberSelect"></select>
         </div>
         <button class="button" type="button">Import Members</button>
       </div>
@@ -40,7 +38,7 @@
         </div>
         <div class="balance-group">
           <div class="label balance-label">Balance:</div>
-          <div class="balance">$1,294.56</div>
+          <div class="balance" id="balanceValue">$0.00</div>
         </div>
       </div>
 
@@ -72,58 +70,7 @@
           <span>Description</span>
           <span>Amount</span>
         </div>
-        <div class="table-body">
-          <div class="table-row">
-            <div>2025-07-28</div>
-            <div>payment</div>
-            <div class="amount">+$100.00</div>
-          </div>
-          <div class="table-row">
-            <div>2025-07-28</div>
-            <div></div>
-            <div class="amount">-$1.11</div>
-          </div>
-          <div class="table-row">
-            <div>2025-07-28</div>
-            <div></div>
-            <div class="amount">-$1.11</div>
-          </div>
-          <div class="table-row">
-            <div>2025-07-28</div>
-            <div></div>
-            <div class="amount">-$3.21</div>
-          </div>
-          <div class="table-row">
-            <div>2025-07-27</div>
-            <div></div>
-            <div class="amount">+$2.77</div>
-          </div>
-          <div class="table-row">
-            <div>2025-07-27</div>
-            <div>hi</div>
-            <div class="amount">-$1.00</div>
-          </div>
-          <div class="table-row">
-            <div>2025-06-10</div>
-            <div>123</div>
-            <div class="amount">-$123.00</div>
-          </div>
-          <div class="table-row">
-            <div>2025-06-10</div>
-            <div>jackpot!</div>
-            <div class="amount">+$1,234.56</div>
-          </div>
-          <div class="table-row">
-            <div>2025-06-10</div>
-            <div></div>
-            <div class="amount">-$12.34</div>
-          </div>
-          <div class="table-row">
-            <div>2025-06-10</div>
-            <div>payment</div>
-            <div class="amount">+$100.00</div>
-          </div>
-        </div>
+        <div class="table-body" id="transactionsBody"></div>
       </div>
 
       <div class="footer-actions">
@@ -141,6 +88,9 @@
     const menu = document.querySelector('.window-menu');
     const menuButton = document.querySelector('.menu-button');
     const menuItems = document.querySelectorAll('.menu-item');
+    const memberSelect = document.querySelector('#memberSelect');
+    const balanceValue = document.querySelector('#balanceValue');
+    const transactionsBody = document.querySelector('#transactionsBody');
 
     const closeMenu = () => {
       menu.classList.remove('open');
@@ -169,6 +119,96 @@
         closeMenu();
       });
     });
+
+    const formatCurrency = (value) => {
+      const amount = Number(value || 0);
+      const formatted = Math.abs(amount).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return `${amount >= 0 ? '+' : '-'}$${formatted}`;
+    };
+
+    const renderTransactions = (transactions) => {
+      transactionsBody.innerHTML = '';
+
+      if (!transactions.length) {
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'table-row';
+        emptyRow.innerHTML =
+          '<div></div><div>No transactions</div><div class="amount"></div>';
+        transactionsBody.appendChild(emptyRow);
+        return;
+      }
+
+      transactions.forEach((transaction) => {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        row.innerHTML = `
+          <div>${transaction.date}</div>
+          <div>${transaction.description || ''}</div>
+          <div class="amount">${formatCurrency(transaction.amount)}</div>
+        `;
+        transactionsBody.appendChild(row);
+      });
+    };
+
+    const loadMember = async (memberId) => {
+      const response = await fetch(`/api/members/${memberId}`);
+      if (!response.ok) {
+        balanceValue.textContent = '$0.00';
+        renderTransactions([]);
+        return;
+      }
+
+      const data = await response.json();
+      balanceValue.textContent = `$${Number(data.member.balance || 0).toLocaleString(
+        undefined,
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }
+      )}`;
+      renderTransactions(data.transactions || []);
+    };
+
+    const loadMembers = async () => {
+      const response = await fetch('/api/members');
+      if (!response.ok) {
+        memberSelect.innerHTML = '<option>No members</option>';
+        return;
+      }
+
+      const data = await response.json();
+      memberSelect.innerHTML = '';
+
+      if (!data.members.length) {
+        memberSelect.innerHTML = '<option>No members</option>';
+        balanceValue.textContent = '$0.00';
+        renderTransactions([]);
+        return;
+      }
+
+      data.members.forEach((member) => {
+        const option = document.createElement('option');
+        option.value = member.id;
+        option.textContent = member.displayName;
+        memberSelect.appendChild(option);
+      });
+
+      const firstMember = data.members[0];
+      memberSelect.value = firstMember.id;
+      await loadMember(firstMember.id);
+    };
+
+    memberSelect.addEventListener('change', (event) => {
+      const selectedId = Number(event.target.value);
+      if (Number.isInteger(selectedId)) {
+        loadMember(selectedId);
+      }
+    });
+
+    loadMembers();
   </script>
 </body>
 </html>
