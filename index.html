@@ -9,17 +9,28 @@
 <body>
   <div class="app-shell">
     <div class="window-bar">
-      <details class="window-menu">
-        <summary class="menu-button" aria-label="Open menu">
-          <span class="menu-line"></span>
-          <span class="menu-line"></span>
-          <span class="menu-line"></span>
-        </summary>
-        <div class="menu-dropdown" role="menu">
-          <button type="button" class="menu-item" role="menuitem">Change Password</button>
+      <div class="menu-bar" role="menubar">
+        <div class="menu" data-menu="file">
+          <button type="button" class="menu-trigger" role="menuitem">File</button>
+          <div class="menu-dropdown" role="menu">
+            <button type="button" class="menu-item" role="menuitem">Change Password</button>
+          </div>
         </div>
-      </details>
-      NVS Pay Log
+        <div class="menu" data-menu="edit">
+          <button type="button" class="menu-trigger" role="menuitem">Edit</button>
+          <div class="menu-dropdown" role="menu">
+            <button type="button" class="menu-item" role="menuitem">Undo</button>
+            <button type="button" class="menu-item" role="menuitem">Redo</button>
+          </div>
+        </div>
+        <div class="menu" data-menu="help">
+          <button type="button" class="menu-trigger" role="menuitem">Help</button>
+          <div class="menu-dropdown" role="menu">
+            <button type="button" class="menu-item" role="menuitem">About</button>
+          </div>
+        </div>
+      </div>
+      <div class="window-title">NVS Pay Log</div>
     </div>
 
     <div class="content">
@@ -138,18 +149,34 @@
     </div>
   </div>
   <script>
-    const menu = document.querySelector('.window-menu');
+    const menus = Array.from(document.querySelectorAll('.menu'));
     const menuItems = document.querySelectorAll('.menu-item');
 
+    const closeMenus = () => {
+      menus.forEach((menu) => menu.classList.remove('open'));
+    };
+
+    menus.forEach((menu) => {
+      const trigger = menu.querySelector('.menu-trigger');
+      trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isOpen = menu.classList.contains('open');
+        closeMenus();
+        if (!isOpen) {
+          menu.classList.add('open');
+        }
+      });
+    });
+
     document.addEventListener('click', (event) => {
-      if (!menu.contains(event.target)) {
-        menu.removeAttribute('open');
+      if (!event.target.closest('.menu-bar')) {
+        closeMenus();
       }
     });
 
     menuItems.forEach((item) => {
       item.addEventListener('click', () => {
-        menu.removeAttribute('open');
+        closeMenus();
       });
     });
   </script>
