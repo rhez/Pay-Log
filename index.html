@@ -224,6 +224,16 @@
         return;
       }
 
+      if (file.name.toLowerCase().endsWith('.xlsx')) {
+        const confirmed = window.confirm(
+          'Importing this .xlsx will remove members not in the file (and their transactions). Continue?'
+        );
+        if (!confirmed) {
+          memberImportInput.value = '';
+          return;
+        }
+      }
+
       const formData = new FormData();
       formData.append('file', file);
 

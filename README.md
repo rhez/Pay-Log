@@ -34,4 +34,5 @@ formatted as:
 ```
 
 Imported members start with a balance of `0`. If a member ID already exists,
-their balance is preserved.
+their balance is preserved. When importing an `.xlsx`, members not present in
+the file are removed along with their transactions after confirming in the UI.

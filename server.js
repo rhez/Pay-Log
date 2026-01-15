@@ -124,10 +124,11 @@ app.post("/api/members/import", upload.single("file"), async (req, res) => {
 
   const filename = req.file.originalname.toLowerCase();
   let members = [];
+  const isSpreadsheet = filename.endsWith(".xlsx");
 
   if (filename.endsWith(".csv")) {
     members = parseMembersFromCsv(req.file.buffer);
-  } else if (filename.endsWith(".xlsx")) {
+  } else if (isSpreadsheet) {
     members = parseMembersFromXlsx(req.file.buffer);
   } else {
     res.status(400).json({ error: "Unsupported file type." });
@@ -148,34 +149,60 @@ app.post("/api/members/import", upload.single("file"), async (req, res) => {
     );
 
   if (!validMembers.length) {
-    res.json({ imported: 0, skipped: members.length });
+    res.status(400).json({ error: "No valid members found in file." });
     return;
   }
 
   try {
-    const values = validMembers
-      .map(
-        (member, index) =>
-          `($${index * 3 + 1}, $${index * 3 + 2}, $${index * 3 + 3})`
-      )
-      .join(", ");
-    const params = validMembers.flatMap((member) => [
-      member.id,
-      member.firstName,
-      member.lastName,
-    ]);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
-    const insertResult = await pool.query(
-      `INSERT INTO "Members" (id, first_name, last_name)
-       VALUES ${values}
-       ON CONFLICT (id) DO NOTHING`,
-      params
-    );
+      const values = validMembers
+        .map(
+          (member, index) =>
+            `($${index * 3 + 1}, $${index * 3 + 2}, $${index * 3 + 3})`
+        )
+        .join(", ");
+      const params = validMembers.flatMap((member) => [
+        member.id,
+        member.firstName,
+        member.lastName,
+      ]);
 
-    res.json({
-      imported: insertResult.rowCount,
-      skipped: validMembers.length - insertResult.rowCount,
-    });
+      const insertResult = await client.query(
+        `INSERT INTO "Members" (id, first_name, last_name)
+         VALUES ${values}
+         ON CONFLICT (id) DO NOTHING`,
+        params
+      );
+
+      let removed = 0;
+      if (isSpreadsheet) {
+        const idParams = validMembers.map((member) => member.id);
+        const deletePlaceholders = idParams
+          .map((_, index) => `$${index + 1}`)
+          .join(", ");
+        const deleteResult = await client.query(
+          `DELETE FROM "Members" WHERE id NOT IN (${deletePlaceholders})`,
+          idParams
+        );
+        removed = deleteResult.rowCount;
+      }
+
+      await client.query("COMMIT");
+
+      res.json({
+        imported: insertResult.rowCount,
+        skipped: validMembers.length - insertResult.rowCount,
+        removed,
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     res.status(500).json({ error: "Failed to import members." });
   }
