@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NVS Pay Log</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div class="window-bar">
+      <div class="window-controls">
+        <span class="control-dot dot-red"></span>
+        <span class="control-dot dot-yellow"></span>
+        <span class="control-dot dot-green"></span>
+      </div>
+      NVS Pay Log
+    </div>
+
+    <div class="content">
+      <div class="row">
+        <div class="label">Member:</div>
+        <div class="input-group">
+          <select>
+            <option>001 - John Smith</option>
+          </select>
+        </div>
+        <button class="button" type="button">Import Members</button>
+      </div>
+
+      <div class="row date-row">
+        <div class="label">Date:</div>
+        <div class="input-group">
+          <input type="text" value="2025-07-29" />
+        </div>
+        <div class="label" style="width: auto;">Balance:</div>
+        <div class="balance">$1,294.56</div>
+      </div>
+
+      <div class="row">
+        <div class="label">Description:</div>
+        <div class="input-group">
+          <textarea></textarea>
+        </div>
+      </div>
+
+      <div class="row amount-row">
+        <div class="label">Amount:</div>
+        <div class="input-group">
+          <input type="text" />
+          <div class="radio-set">
+            <label><input type="radio" name="type" checked /> Charge (-)</label>
+            <label><input type="radio" name="type" /> Credit (+)</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="padding-top: 4px;">
+        <div class="label" style="width: auto;">Recent Transactions:</div>
+      </div>
+
+      <div class="transactions">
+        <div class="table-header">
+          <span>Date</span>
+          <span>Description</span>
+          <span>Amount</span>
+        </div>
+        <div class="table-body">
+          <div class="table-row">
+            <div>2025-07-28</div>
+            <div>payment</div>
+            <div class="amount">+$100.00</div>
+          </div>
+          <div class="table-row">
+            <div>2025-07-28</div>
+            <div></div>
+            <div class="amount">-$1.11</div>
+          </div>
+          <div class="table-row">
+            <div>2025-07-28</div>
+            <div></div>
+            <div class="amount">-$1.11</div>
+          </div>
+          <div class="table-row">
+            <div>2025-07-28</div>
+            <div></div>
+            <div class="amount">-$3.21</div>
+          </div>
+          <div class="table-row">
+            <div>2025-07-27</div>
+            <div></div>
+            <div class="amount">+$2.77</div>
+          </div>
+          <div class="table-row">
+            <div>2025-07-27</div>
+            <div>hi</div>
+            <div class="amount">-$1.00</div>
+          </div>
+          <div class="table-row">
+            <div>2025-06-10</div>
+            <div>123</div>
+            <div class="amount">-$123.00</div>
+          </div>
+          <div class="table-row">
+            <div>2025-06-10</div>
+            <div>jackpot!</div>
+            <div class="amount">+$1,234.56</div>
+          </div>
+          <div class="table-row">
+            <div>2025-06-10</div>
+            <div></div>
+            <div class="amount">-$12.34</div>
+          </div>
+          <div class="table-row">
+            <div>2025-06-10</div>
+            <div>payment</div>
+            <div class="amount">+$100.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button class="button" type="button">◀ Undo Last Transaction</button>
+        <button class="button" type="button">Apply Transaction ▶</button>
+      </div>
+
+      <div class="status">
+        <span class="status-icon">✓</span>
+        <span>John Smith (ID: 001) fetched successfully</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
