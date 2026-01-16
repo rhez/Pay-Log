@@ -103,7 +103,7 @@ app.get("/api/members/:id", async (req, res) => {
     }
 
     const transactionsResult = await pool.query(
-      'SELECT id, member_id, date, description, amount FROM "Transactions" WHERE member_id = $1 ORDER BY date DESC, id DESC',
+      'SELECT id, member_id, date, description, amount FROM "Transactions" WHERE member_id = $1 ORDER BY id DESC',
       [memberId]
     );
 
