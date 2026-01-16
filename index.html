@@ -132,10 +132,14 @@
       return `${amount >= 0 ? '+' : '-'}$${formatted}`;
     };
 
-    const renderTransactions = (transactions) => {
+    const renderTransactions = (transactions, memberId) => {
       transactionsBody.innerHTML = '';
 
-      if (!transactions.length) {
+      const filteredTransactions = memberId
+        ? transactions.filter((transaction) => transaction.member_id === memberId)
+        : transactions;
+
+      if (!filteredTransactions.length) {
         const emptyRow = document.createElement('div');
         emptyRow.className = 'table-row';
         emptyRow.innerHTML =
@@ -144,7 +148,7 @@
         return;
       }
 
-      transactions.forEach((transaction) => {
+      filteredTransactions.forEach((transaction) => {
         const row = document.createElement('div');
         row.className = 'table-row';
         row.innerHTML = `
@@ -160,7 +164,7 @@
       const response = await fetch(`/api/members/${memberId}`);
       if (!response.ok) {
         balanceValue.textContent = '$0.00';
-        renderTransactions([]);
+        renderTransactions([], memberId);
         return;
       }
 
@@ -172,7 +176,7 @@
           maximumFractionDigits: 2,
         }
       )}`;
-      renderTransactions(data.transactions || []);
+      renderTransactions(data.transactions || [], memberId);
     };
 
     const loadMembers = async () => {
@@ -190,7 +194,7 @@
         memberSelect.innerHTML = '<option>No members</option>';
         memberSelect.disabled = true;
         balanceValue.textContent = '$0.00';
-        renderTransactions([]);
+        renderTransactions([], null);
         return;
       }
 
