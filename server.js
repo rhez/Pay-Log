@@ -227,11 +227,10 @@ app.post("/api/members/import", upload.single("file"), async (req, res) => {
 
   const filename = req.file.originalname.toLowerCase();
   let members = [];
-  const isSpreadsheet = filename.endsWith(".xlsx");
 
   if (filename.endsWith(".csv")) {
     members = parseMembersFromCsv(req.file.buffer);
-  } else if (isSpreadsheet) {
+  } else if (filename.endsWith(".xlsx")) {
     members = parseMembersFromXlsx(req.file.buffer);
   } else {
     res.status(400).json({ error: "Unsupported file type." });
@@ -280,18 +279,15 @@ app.post("/api/members/import", upload.single("file"), async (req, res) => {
         params
       );
 
-      let removed = 0;
-      if (isSpreadsheet) {
-        const idParams = validMembers.map((member) => member.id);
-        const deletePlaceholders = idParams
-          .map((_, index) => `$${index + 1}`)
-          .join(", ");
-        const deleteResult = await client.query(
-          `DELETE FROM "Members" WHERE id NOT IN (${deletePlaceholders})`,
-          idParams
-        );
-        removed = deleteResult.rowCount;
-      }
+      const idParams = validMembers.map((member) => member.id);
+      const deletePlaceholders = idParams
+        .map((_, index) => `$${index + 1}`)
+        .join(", ");
+      const deleteResult = await client.query(
+        `DELETE FROM "Members" WHERE id NOT IN (${deletePlaceholders})`,
+        idParams
+      );
+      const removed = deleteResult.rowCount;
 
       await client.query("COMMIT");
 

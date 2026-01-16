@@ -298,14 +298,12 @@
         return;
       }
 
-      if (file.name.toLowerCase().endsWith('.xlsx')) {
-        const confirmed = window.confirm(
-          'Importing this .xlsx will remove members not in the file (and their transactions). Continue?'
-        );
-        if (!confirmed) {
-          memberImportInput.value = '';
-          return;
-        }
+      const confirmed = window.confirm(
+        'Importing will sync members to this file and remove anyone not listed (plus their transactions). Continue?'
+      );
+      if (!confirmed) {
+        memberImportInput.value = '';
+        return;
       }
 
       const formData = new FormData();
