@@ -35,7 +35,7 @@
       <div class="row date-row">
         <div class="label">Date:</div>
         <div class="input-group">
-          <input type="text" value="2025-07-29" />
+          <input type="date" id="transactionDate" />
         </div>
         <div class="balance-group">
           <div class="label balance-label">Balance:</div>
@@ -53,10 +53,10 @@
       <div class="row amount-row">
         <div class="label">Amount:</div>
         <div class="input-group">
-          <input type="text" />
+          <input type="number" id="transactionAmount" step="0.01" />
           <div class="radio-set">
-            <label><input type="radio" name="type" checked /> Charge (-)</label>
-            <label><input type="radio" name="type" /> Credit (+)</label>
+            <label><input type="radio" name="type" value="charge" checked /> Charge (-)</label>
+            <label><input type="radio" name="type" value="credit" /> Credit (+)</label>
           </div>
         </div>
       </div>
@@ -94,6 +94,15 @@
     const transactionsBody = document.querySelector('#transactionsBody');
     const importMembersButton = document.querySelector('#importMembersButton');
     const memberImportInput = document.querySelector('#memberImportInput');
+    const transactionDate = document.querySelector('#transactionDate');
+    const transactionAmount = document.querySelector('#transactionAmount');
+    const descriptionInput = document.querySelector('textarea');
+    const applyTransactionButton = document.querySelector(
+      '.footer-actions .button:last-child'
+    );
+
+    const today = new Date().toISOString().split('T')[0];
+    transactionDate.value = today;
 
     const closeMenu = () => {
       menu.classList.remove('open');
@@ -179,6 +188,38 @@
       renderTransactions(data.transactions || [], memberId);
     };
 
+    const applyTransaction = async () => {
+      const selectedId = Number(memberSelect.value);
+      if (!Number.isInteger(selectedId)) {
+        return;
+      }
+
+      const amountValue = Number(transactionAmount.value);
+      if (!transactionDate.value || Number.isNaN(amountValue) || amountValue === 0) {
+        return;
+      }
+
+      const selectedType = document.querySelector('input[name="type"]:checked');
+      const payload = {
+        date: transactionDate.value,
+        description: descriptionInput.value || '',
+        amount: amountValue,
+        type: selectedType?.value || 'charge',
+      };
+
+      const response = await fetch(`/api/members/${selectedId}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        await loadMember(selectedId);
+        transactionAmount.value = '';
+        descriptionInput.value = '';
+      }
+    };
+
     const loadMembers = async () => {
       const response = await fetch('/api/members');
       if (!response.ok) {
@@ -216,6 +257,10 @@
       if (Number.isInteger(selectedId)) {
         loadMember(selectedId);
       }
+    });
+
+    applyTransactionButton.addEventListener('click', () => {
+      applyTransaction();
     });
 
     importMembersButton.addEventListener('click', () => {

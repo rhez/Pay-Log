@@ -116,6 +116,64 @@ app.get("/api/members/:id", async (req, res) => {
   }
 });
 
+app.post("/api/members/:id/transactions", express.json(), async (req, res) => {
+  const memberId = Number(req.params.id);
+  if (!Number.isInteger(memberId)) {
+    res.status(400).json({ error: "Invalid member id." });
+    return;
+  }
+
+  const { date, description, amount, type } = req.body ?? {};
+  const numericAmount = Number(amount);
+  const normalizedType = type === "credit" ? "credit" : "charge";
+
+  if (!date || Number.isNaN(numericAmount)) {
+    res.status(400).json({ error: "Invalid transaction payload." });
+    return;
+  }
+
+  const signedAmount =
+    normalizedType === "credit" ? Math.abs(numericAmount) : -Math.abs(numericAmount);
+
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const memberResult = await client.query(
+        'SELECT balance FROM "Members" WHERE id = $1',
+        [memberId]
+      );
+
+      if (memberResult.rowCount === 0) {
+        res.status(404).json({ error: "Member not found." });
+        return;
+      }
+
+      await client.query(
+        'INSERT INTO "Transactions" (member_id, date, description, amount) VALUES ($1, $2, $3, $4)',
+        [memberId, date, description || "", signedAmount]
+      );
+
+      const balanceResult = await client.query(
+        'UPDATE "Members" SET balance = balance + $1 WHERE id = $2 RETURNING balance',
+        [signedAmount, memberId]
+      );
+
+      await client.query("COMMIT");
+
+      res.json({ balance: balanceResult.rows[0].balance });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Failed to apply transaction." });
+  }
+});
+
 app.post("/api/members/import", upload.single("file"), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "No file uploaded." });
