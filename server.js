@@ -174,6 +174,51 @@ app.post("/api/members/:id/transactions", express.json(), async (req, res) => {
   }
 });
 
+app.delete("/api/members/:id/transactions/last", async (req, res) => {
+  const memberId = Number(req.params.id);
+  if (!Number.isInteger(memberId)) {
+    res.status(400).json({ error: "Invalid member id." });
+    return;
+  }
+
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const transactionResult = await client.query(
+        'SELECT id, amount FROM "Transactions" WHERE member_id = $1 ORDER BY id DESC LIMIT 1',
+        [memberId]
+      );
+
+      if (transactionResult.rowCount === 0) {
+        res.status(404).json({ error: "No transactions to undo." });
+        return;
+      }
+
+      const { id: transactionId, amount } = transactionResult.rows[0];
+
+      await client.query('DELETE FROM "Transactions" WHERE id = $1', [transactionId]);
+
+      const balanceResult = await client.query(
+        'UPDATE "Members" SET balance = balance - $1 WHERE id = $2 RETURNING balance',
+        [amount, memberId]
+      );
+
+      await client.query("COMMIT");
+
+      res.json({ balance: balanceResult.rows[0].balance, transactionId });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Failed to undo transaction." });
+  }
+});
+
 app.post("/api/members/import", upload.single("file"), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "No file uploaded." });

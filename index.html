@@ -75,7 +75,9 @@
       </div>
 
       <div class="footer-actions">
-        <button class="button" type="button">◀ Undo Last Transaction</button>
+        <button class="button" id="undoTransactionButton" type="button">
+          ◀ Undo Last Transaction
+        </button>
         <button class="button" type="button">Apply Transaction ▶</button>
       </div>
 
@@ -97,6 +99,7 @@
     const transactionDate = document.querySelector('#transactionDate');
     const transactionAmount = document.querySelector('#transactionAmount');
     const descriptionInput = document.querySelector('textarea');
+    const undoTransactionButton = document.querySelector('#undoTransactionButton');
     const applyTransactionButton = document.querySelector(
       '.footer-actions .button:last-child'
     );
@@ -220,6 +223,24 @@
       }
     };
 
+    const undoLastTransaction = async () => {
+      const selectedId = Number(memberSelect.value);
+      if (!Number.isInteger(selectedId)) {
+        return;
+      }
+
+      const response = await fetch(
+        `/api/members/${selectedId}/transactions/last`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (response.ok) {
+        await loadMember(selectedId);
+      }
+    };
+
     const loadMembers = async () => {
       const response = await fetch('/api/members');
       if (!response.ok) {
@@ -261,6 +282,10 @@
 
     applyTransactionButton.addEventListener('click', () => {
       applyTransaction();
+    });
+
+    undoTransactionButton.addEventListener('click', () => {
+      undoLastTransaction();
     });
 
     importMembersButton.addEventListener('click', () => {
