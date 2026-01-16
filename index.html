@@ -298,16 +298,29 @@
         return;
       }
 
-      const confirmed = window.confirm(
-        'Importing will sync members to this file and remove anyone not listed (plus their transactions). Continue?'
-      );
-      if (!confirmed) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const previewResponse = await fetch('/api/members/import/preview', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!previewResponse.ok) {
         memberImportInput.value = '';
         return;
       }
 
-      const formData = new FormData();
-      formData.append('file', file);
+      const previewData = await previewResponse.json();
+      if (previewData.toDelete > 0) {
+        const confirmed = window.confirm(
+          `Importing will remove ${previewData.toDelete} member(s) not listed and their transactions. Continue?`
+        );
+        if (!confirmed) {
+          memberImportInput.value = '';
+          return;
+        }
+      }
 
       const response = await fetch('/api/members/import', {
         method: 'POST',

@@ -54,6 +54,31 @@ const parseMembersFromXlsx = (buffer) => {
     .filter((member) => member.id && member.firstName && member.lastName);
 };
 
+const normalizeMembers = (members) =>
+  members
+    .map((member) => ({
+      id: Number(member.id),
+      firstName: member.firstName,
+      lastName: member.lastName,
+    }))
+    .filter(
+      (member) =>
+        Number.isInteger(member.id) &&
+        member.firstName &&
+        member.lastName
+    );
+
+const parseMembersFile = (file) => {
+  const filename = file.originalname.toLowerCase();
+  if (filename.endsWith(".csv")) {
+    return parseMembersFromCsv(file.buffer);
+  }
+  if (filename.endsWith(".xlsx")) {
+    return parseMembersFromXlsx(file.buffer);
+  }
+  return null;
+};
+
 app.get("/api/members", async (req, res) => {
   try {
     const maxResult = await pool.query('SELECT MAX(id) AS max_id FROM "Members"');
@@ -219,36 +244,56 @@ app.delete("/api/members/:id/transactions/last", async (req, res) => {
   }
 });
 
+app.post(
+  "/api/members/import/preview",
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file) {
+      res.status(400).json({ error: "No file uploaded." });
+      return;
+    }
+
+    const parsedMembers = parseMembersFile(req.file);
+    if (!parsedMembers) {
+      res.status(400).json({ error: "Unsupported file type." });
+      return;
+    }
+
+    const validMembers = normalizeMembers(parsedMembers);
+    if (!validMembers.length) {
+      res.status(400).json({ error: "No valid members found in file." });
+      return;
+    }
+
+    try {
+      const idParams = validMembers.map((member) => member.id);
+      const deletePlaceholders = idParams
+        .map((_, index) => `$${index + 1}`)
+        .join(", ");
+      const deleteResult = await pool.query(
+        `SELECT COUNT(*)::int AS count FROM "Members" WHERE id NOT IN (${deletePlaceholders})`,
+        idParams
+      );
+      res.json({ toDelete: deleteResult.rows[0].count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to preview import." });
+    }
+  }
+);
+
 app.post("/api/members/import", upload.single("file"), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "No file uploaded." });
     return;
   }
 
-  const filename = req.file.originalname.toLowerCase();
-  let members = [];
-
-  if (filename.endsWith(".csv")) {
-    members = parseMembersFromCsv(req.file.buffer);
-  } else if (filename.endsWith(".xlsx")) {
-    members = parseMembersFromXlsx(req.file.buffer);
-  } else {
+  const parsedMembers = parseMembersFile(req.file);
+  if (!parsedMembers) {
     res.status(400).json({ error: "Unsupported file type." });
     return;
   }
 
-  const validMembers = members
-    .map((member) => ({
-      id: Number(member.id),
-      firstName: member.firstName,
-      lastName: member.lastName,
-    }))
-    .filter(
-      (member) =>
-        Number.isInteger(member.id) &&
-        member.firstName &&
-        member.lastName
-    );
+  const validMembers = normalizeMembers(parsedMembers);
 
   if (!validMembers.length) {
     res.status(400).json({ error: "No valid members found in file." });
