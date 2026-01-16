@@ -22,36 +22,63 @@ const formatMemberName = (id, firstName, lastName, padLength) => {
   return `${paddedId} – ${firstName} ${lastName}`;
 };
 
+const normalizeHeader = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
 const parseMembersFromCsv = (buffer) => {
   const text = buffer.toString("utf8");
-  return text
+  const rows = text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => line.split(",").map((value) => value.trim()))
-    .filter((parts) => parts.length >= 3)
-    .map(([id, firstName, lastName]) => ({
-      id,
-      firstName,
-      lastName,
-    }));
+    .map((line) => line.split(",").map((value) => value.trim()));
+
+  if (rows.length < 2) {
+    return [];
+  }
+
+  const headers = rows[0].map(normalizeHeader);
+  const idIndex = headers.indexOf("id");
+  const firstNameIndex = headers.indexOf("first_name");
+  const lastNameIndex = headers.indexOf("last_name");
+
+  if (idIndex === -1 || firstNameIndex === -1 || lastNameIndex === -1) {
+    return [];
+  }
+
+  return rows.slice(1).map((row) => ({
+    id: row[idIndex],
+    firstName: row[firstNameIndex],
+    lastName: row[lastNameIndex],
+  }));
 };
 
 const parseMembersFromXlsx = (buffer) => {
   const workbook = xlsx.read(buffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: false });
+  const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
-  return rows
-    .map((row) => row.map((value) => String(value ?? "").trim()))
-    .filter((row) => row.filter(Boolean).length)
-    .map(([id, firstName, lastName]) => ({
-      id,
-      firstName,
-      lastName,
-    }))
-    .filter((member) => member.id && member.firstName && member.lastName);
+  const normalized = rows.map((row) => {
+    const mapped = Object.entries(row).reduce((acc, [key, value]) => {
+      const normalizedKey = normalizeHeader(key);
+      acc[normalizedKey] = value;
+      return acc;
+    }, {});
+
+    return {
+      id: mapped.id,
+      firstName: mapped.first_name,
+      lastName: mapped.last_name,
+    };
+  });
+
+  return normalized.filter(
+    (member) => member.id && member.firstName && member.lastName
+  );
 };
 
 const normalizeMembers = (members) =>
