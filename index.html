@@ -81,45 +81,9 @@
         <button class="button" type="button">Apply Transaction ▶</button>
       </div>
 
-      <div class="status">
-        <span class="status-emoji" aria-hidden="true">✅</span>
-        <div class="status-details">
-          <div class="status-message">John Smith (ID: 001) fetched successfully</div>
-          <div class="status-grid">
-            <div class="status-row">
-              <span class="status-label">Server connection:</span>
-              <span class="status-value" id="statusServer">pending</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">Database connection:</span>
-              <span class="status-value" id="statusDatabase">pending</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">Load members:</span>
-              <span class="status-value" id="statusMembers">pending</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">Load transactions for member:</span>
-              <span class="status-value" id="statusTransactions">pending</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">Apply transaction:</span>
-              <span class="status-value" id="statusApply">pending</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">Validate date (yyyy-mm-dd):</span>
-              <span class="status-value" id="statusDate">pending</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">Validate amount ([$]&lt;num&gt;[.dd]):</span>
-              <span class="status-value" id="statusAmount">pending</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">Undo last transaction:</span>
-              <span class="status-value" id="statusUndo">pending</span>
-            </div>
-          </div>
-        </div>
+      <div class="status" id="statusBar">
+        <span class="status-emoji" id="statusEmoji" aria-hidden="true">✅</span>
+        <span class="status-text" id="statusText">Ready.</span>
       </div>
     </div>
   </div>
@@ -139,21 +103,25 @@
     const applyTransactionButton = document.querySelector(
       '.footer-actions .button:last-child'
     );
-    const statusServer = document.querySelector('#statusServer');
-    const statusDatabase = document.querySelector('#statusDatabase');
-    const statusMembers = document.querySelector('#statusMembers');
-    const statusTransactions = document.querySelector('#statusTransactions');
-    const statusApply = document.querySelector('#statusApply');
-    const statusDate = document.querySelector('#statusDate');
-    const statusAmount = document.querySelector('#statusAmount');
-    const statusUndo = document.querySelector('#statusUndo');
+    const statusBar = document.querySelector('#statusBar');
+    const statusEmoji = document.querySelector('#statusEmoji');
+    const statusText = document.querySelector('#statusText');
 
     const today = new Date().toISOString().split('T')[0];
     transactionDate.value = today;
 
-    const setStatus = (element, value) => {
-      if (element) {
-        element.textContent = value;
+    const setStatus = (message, state = 'info') => {
+      statusText.textContent = message;
+      statusBar.classList.remove('status-success', 'status-fail', 'status-info');
+      if (state === 'success') {
+        statusEmoji.textContent = '✅';
+        statusBar.classList.add('status-success');
+      } else if (state === 'fail') {
+        statusEmoji.textContent = '❌';
+        statusBar.classList.add('status-fail');
+      } else {
+        statusEmoji.textContent = '⏳';
+        statusBar.classList.add('status-info');
       }
     };
 
@@ -223,12 +191,12 @@
     };
 
     const loadMember = async (memberId) => {
-      setStatus(statusTransactions, 'loading');
+      setStatus('Loading transactions...', 'info');
       const response = await fetch(`/api/members/${memberId}`);
       if (!response.ok) {
         balanceValue.textContent = '$0.00';
         renderTransactions([], memberId);
-        setStatus(statusTransactions, 'failed');
+        setStatus('Failed to load transactions.', 'fail');
         return;
       }
 
@@ -242,28 +210,27 @@
       )}`;
       renderTransactions(data.transactions || [], memberId);
       setStatus(
-        statusTransactions,
-        data.transactions && data.transactions.length ? 'loaded' : 'none'
+        data.transactions && data.transactions.length
+          ? 'Transactions loaded.'
+          : 'No transactions for this member.',
+        'success'
       );
     };
 
     const applyTransaction = async () => {
-      setStatus(statusApply, 'pending');
+      setStatus('Applying transaction...', 'info');
       const selectedId = Number(memberSelect.value);
       if (!Number.isInteger(selectedId)) {
-        setStatus(statusApply, 'failed');
+        setStatus('Select a member before applying a transaction.', 'fail');
         return;
       }
 
       const amountValue = Number(transactionAmount.value);
       const dateValid = /^\d{4}-\d{2}-\d{2}$/.test(transactionDate.value);
-      setStatus(statusDate, dateValid ? 'valid' : 'invalid');
-
       const amountValid = !Number.isNaN(amountValue) && amountValue > 0;
-      setStatus(statusAmount, amountValid ? 'valid' : 'invalid');
 
       if (!dateValid || !amountValid) {
-        setStatus(statusApply, 'failed');
+        setStatus('Invalid date or amount.', 'fail');
         return;
       }
 
@@ -285,17 +252,17 @@
         await loadMember(selectedId);
         transactionAmount.value = '';
         descriptionInput.value = '';
-        setStatus(statusApply, 'success');
+        setStatus('Transaction applied successfully.', 'success');
       } else {
-        setStatus(statusApply, 'failed');
+        setStatus('Failed to apply transaction.', 'fail');
       }
     };
 
     const undoLastTransaction = async () => {
-      setStatus(statusUndo, 'pending');
+      setStatus('Undoing last transaction...', 'info');
       const selectedId = Number(memberSelect.value);
       if (!Number.isInteger(selectedId)) {
-        setStatus(statusUndo, 'failed');
+        setStatus('Select a member before undoing.', 'fail');
         return;
       }
 
@@ -308,26 +275,21 @@
 
       if (response.ok) {
         await loadMember(selectedId);
-        setStatus(statusUndo, 'success');
+        setStatus('Last transaction undone.', 'success');
       } else {
-        setStatus(statusUndo, 'failed');
+        setStatus('Failed to undo last transaction.', 'fail');
       }
     };
 
     const loadMembers = async () => {
-      setStatus(statusMembers, 'loading');
+      setStatus('Loading members...', 'info');
       const response = await fetch('/api/members');
       if (!response.ok) {
         memberSelect.innerHTML = '<option>No members</option>';
         memberSelect.disabled = true;
-        setStatus(statusServer, 'failed');
-        setStatus(statusDatabase, 'failed');
-        setStatus(statusMembers, 'failed');
+        setStatus('Server or database connection failed.', 'fail');
         return;
       }
-
-      setStatus(statusServer, 'connected');
-      setStatus(statusDatabase, 'connected');
 
       const data = await response.json();
       memberSelect.innerHTML = '';
@@ -337,7 +299,7 @@
         memberSelect.disabled = true;
         balanceValue.textContent = '$0.00';
         renderTransactions([], null);
-        setStatus(statusMembers, 'none');
+        setStatus('No members loaded.', 'success');
         return;
       }
 
@@ -352,7 +314,7 @@
       memberSelect.value = firstMember.id;
       memberSelect.disabled = false;
       await loadMember(firstMember.id);
-      setStatus(statusMembers, 'loaded');
+      setStatus('Members loaded successfully.', 'success');
     };
 
     memberSelect.addEventListener('change', (event) => {
@@ -383,6 +345,7 @@
       const formData = new FormData();
       formData.append('file', file);
 
+      setStatus('Checking import changes...', 'info');
       const previewResponse = await fetch('/api/members/import/preview', {
         method: 'POST',
         body: formData,
@@ -390,6 +353,7 @@
 
       if (!previewResponse.ok) {
         memberImportInput.value = '';
+        setStatus('Failed to preview import.', 'fail');
         return;
       }
 
@@ -400,10 +364,12 @@
         );
         if (!confirmed) {
           memberImportInput.value = '';
+          setStatus('Import cancelled.', 'fail');
           return;
         }
       }
 
+      setStatus('Importing members...', 'info');
       const response = await fetch('/api/members/import', {
         method: 'POST',
         body: formData,
@@ -411,6 +377,9 @@
 
       if (response.ok) {
         await loadMembers();
+        setStatus('Members imported successfully.', 'success');
+      } else {
+        setStatus('Failed to import members.', 'fail');
       }
 
       memberImportInput.value = '';

@@ -300,10 +300,9 @@ textarea {
 
 .status {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   font-size: 22px;
-  color: var(--success);
   padding: 6px 8px;
 }
 
@@ -311,35 +310,19 @@ textarea {
   font-size: 26px;
 }
 
-.status-details {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.status-text {
+  font-size: 20px;
   color: #1d1d1d;
 }
 
-.status-message {
-  font-size: 20px;
-  color: var(--success);
+.status-success {
+  color: #0aa400;
 }
 
-.status-grid {
-  display: grid;
-  gap: 4px;
-  font-size: 16px;
-  color: #3a3a3a;
+.status-fail {
+  color: #c21c1c;
 }
 
-.status-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.status-label {
-  font-weight: 600;
-}
-
-.status-value {
-  color: #4a4a4a;
+.status-info {
+  color: #555;
 }
