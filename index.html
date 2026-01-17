@@ -53,7 +53,7 @@
       <div class="row amount-row">
         <div class="label">Amount:</div>
         <div class="input-group">
-          <input type="number" id="transactionAmount" step="0.01" />
+          <input type="text" id="transactionAmount" />
           <div class="radio-set">
             <label><input type="radio" name="type" value="charge" checked /> Charge (-)</label>
             <label><input type="radio" name="type" value="credit" /> Credit (+)</label>
@@ -110,18 +110,15 @@
     const today = new Date().toISOString().split('T')[0];
     transactionDate.value = today;
 
-    const setStatus = (message, state = 'info') => {
+    const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
-      statusBar.classList.remove('status-success', 'status-fail', 'status-info');
+      statusBar.classList.remove('status-success', 'status-fail');
       if (state === 'success') {
         statusEmoji.textContent = '✅';
         statusBar.classList.add('status-success');
       } else if (state === 'fail') {
         statusEmoji.textContent = '❌';
         statusBar.classList.add('status-fail');
-      } else {
-        statusEmoji.textContent = '⏳';
-        statusBar.classList.add('status-info');
       }
     };
 
@@ -191,7 +188,6 @@
     };
 
     const loadMember = async (memberId) => {
-      setStatus('Loading transactions...', 'info');
       const response = await fetch(`/api/members/${memberId}`);
       if (!response.ok) {
         balanceValue.textContent = '$0.00';
@@ -218,14 +214,15 @@
     };
 
     const applyTransaction = async () => {
-      setStatus('Applying transaction...', 'info');
       const selectedId = Number(memberSelect.value);
       if (!Number.isInteger(selectedId)) {
         setStatus('Select a member before applying a transaction.', 'fail');
         return;
       }
 
-      const amountValue = Number(transactionAmount.value);
+      const amountValue = Number(
+        transactionAmount.value.replace(/[^0-9.]/g, '')
+      );
       const dateValid = /^\d{4}-\d{2}-\d{2}$/.test(transactionDate.value);
       const amountValid = !Number.isNaN(amountValue) && amountValue > 0;
 
@@ -259,7 +256,6 @@
     };
 
     const undoLastTransaction = async () => {
-      setStatus('Undoing last transaction...', 'info');
       const selectedId = Number(memberSelect.value);
       if (!Number.isInteger(selectedId)) {
         setStatus('Select a member before undoing.', 'fail');
@@ -282,7 +278,6 @@
     };
 
     const loadMembers = async () => {
-      setStatus('Loading members...', 'info');
       const response = await fetch('/api/members');
       if (!response.ok) {
         memberSelect.innerHTML = '<option>No members</option>';
@@ -345,7 +340,6 @@
       const formData = new FormData();
       formData.append('file', file);
 
-      setStatus('Checking import changes...', 'info');
       const previewResponse = await fetch('/api/members/import/preview', {
         method: 'POST',
         body: formData,
@@ -369,7 +363,6 @@
         }
       }
 
-      setStatus('Importing members...', 'info');
       const response = await fetch('/api/members/import', {
         method: 'POST',
         body: formData,
