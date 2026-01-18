@@ -6,7 +6,7 @@ Open `index.html` directly in a browser (offline is fine) to view the static UI.
 
 ## Backend
 
-This project includes a small Node/Express server backed by Postgres.
+This project includes a small Node/Express server backed by Postgres and runs over HTTP by default.
 
 1. Create the database schema:
 
@@ -23,9 +23,12 @@ This project includes a small Node/Express server backed by Postgres.
 
 The server exposes:
 
-- `GET /api/members` for the member list (pre-formatted with zero-padded IDs).
-- `GET /api/members/:id` for the selected member's balance and transactions.
-- `GET /api/admin/password` and `POST /api/admin/password` to read/write the admin password stored in the database.
+- `GET /api/admin/session` to check whether the admin session is authenticated.
+- `POST /api/admin/login` to authenticate and set the session cookie.
+- `POST /api/admin/logout` to clear the session cookie.
+- `POST /api/admin/password` to update the admin password (requires login).
+- `GET /api/members` for the member list (requires login).
+- `GET /api/members/:id` for the selected member's balance and transactions (requires login).
 
 To import members, click **Import Members** and choose a `.csv` or `.xlsx` file
 that includes `id`, `first_name`, and `last_name` columns in any order.
