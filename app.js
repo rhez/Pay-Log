@@ -318,11 +318,14 @@ const renderTransactions = (transactions, memberId) => {
     const row = document.createElement('div');
     row.className = 'table-row';
     const dateValue = String(transaction.date || '').split('T')[0];
-    row.innerHTML = `
-      <div>${dateValue}</div>
-      <div>${transaction.description || ''}</div>
-      <div class="amount">${formatCurrency(transaction.amount)}</div>
-    `;
+    const dateCell = document.createElement('div');
+    dateCell.textContent = dateValue;
+    const descriptionCell = document.createElement('div');
+    descriptionCell.textContent = transaction.description || '';
+    const amountCell = document.createElement('div');
+    amountCell.className = 'amount';
+    amountCell.textContent = formatCurrency(transaction.amount);
+    row.append(dateCell, descriptionCell, amountCell);
     row.addEventListener('click', () => {
       if (row.classList.contains('selected')) {
         row.classList.remove('selected');
@@ -437,7 +440,10 @@ const loadMembers = async (
     return;
   }
   if (!response.ok) {
-    memberSelect.innerHTML = '<option>No members</option>';
+    memberSelect.innerHTML = '';
+    const option = document.createElement('option');
+    option.textContent = 'No members';
+    memberSelect.appendChild(option);
     memberSelect.disabled = true;
     if (!suppressStatus) {
       setStatus('Server or database connection failed.', 'fail');
@@ -450,7 +456,10 @@ const loadMembers = async (
   memberSelect.innerHTML = '';
 
   if (!data.members.length) {
-    memberSelect.innerHTML = '<option>No members</option>';
+    memberSelect.innerHTML = '';
+    const option = document.createElement('option');
+    option.textContent = 'No members';
+    memberSelect.appendChild(option);
     memberSelect.disabled = true;
     balanceValue.textContent = '$0.00';
     renderTransactions([], null);
