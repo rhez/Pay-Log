@@ -659,7 +659,5 @@ initializeSession();
 window.addEventListener('pagehide', () => {
   if (isLoggedIn) {
     logout({ suppressStatus: true });
-  } else {
-    sendLogoutRequest();
   }
 });
