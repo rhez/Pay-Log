@@ -151,6 +151,9 @@
     };
 
     const openModal = ({ title, fields, onConfirm }) => {
+      if (!fields || fields.length === 0) {
+        return;
+      }
       modalTitle.textContent = title;
       modalFields.innerHTML = '';
       fields.forEach((field) => {
@@ -177,6 +180,8 @@
       modalOverlay.hidden = true;
       modalForm.onsubmit = null;
       modalFields.innerHTML = '';
+      modalTitle.textContent = '';
+      modalForm.reset();
     };
 
     modalCancel.addEventListener('click', () => {
