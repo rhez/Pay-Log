@@ -546,10 +546,14 @@ memberImportInput.addEventListener('change', async (event) => {
 
   const previewData = await previewResponse.json();
   if (previewData.toDelete > 0) {
-    setStatus(
-      `Importing will remove ${previewData.toDelete} member(s) not listed and their transactions.`,
-      'success'
+    const confirmed = window.confirm(
+      `Importing will remove ${previewData.toDelete} member(s) not listed and their transactions. Continue?`
     );
+    if (!confirmed) {
+      memberImportInput.value = '';
+      setStatus('Import cancelled.', 'success');
+      return;
+    }
   }
 
   const response = await fetch('/api/members/import', {
