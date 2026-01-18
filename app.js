@@ -67,6 +67,16 @@ const clearPrivateFields = () => {
   renderTransactions([], null);
 };
 
+const logout = ({ suppressStatus = false } = {}) => {
+  isLoggedIn = false;
+  localStorage.removeItem('isLoggedIn');
+  clearPrivateFields();
+  renderMenu();
+  if (!suppressStatus) {
+    setStatus('Logged out.', 'success');
+  }
+};
+
 const renderMenu = () => {
   menuOptions.innerHTML = '';
   if (!isLoggedIn) {
@@ -94,11 +104,7 @@ const renderMenu = () => {
     logoutButton.textContent = 'Logout';
     logoutButton.addEventListener('click', () => {
       closeMenu();
-      isLoggedIn = false;
-      localStorage.removeItem('isLoggedIn');
-      clearPrivateFields();
-      renderMenu();
-      setStatus('Logged out.', 'success');
+      logout();
     });
     menuOptions.append(changeButton, logoutButton);
   }
@@ -569,3 +575,9 @@ changePasswordConfirmButton.addEventListener('click', () => {
 });
 
 setupWebSocket();
+
+window.addEventListener('pagehide', () => {
+  if (isLoggedIn) {
+    logout({ suppressStatus: true });
+  }
+});
