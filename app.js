@@ -27,7 +27,12 @@ const newPasswordInput = document.querySelector('#newPassword');
 const confirmNewPasswordInput = document.querySelector('#confirmNewPassword');
 const changePasswordCancelButton = document.querySelector('#changePasswordCancel');
 const changePasswordConfirmButton = document.querySelector('#changePasswordConfirm');
+const confirmImportModal = document.querySelector('#confirmImportModal');
+const confirmImportMessage = document.querySelector('#confirmImportMessage');
+const confirmImportCancelButton = document.querySelector('#confirmImportCancel');
+const confirmImportConfirmButton = document.querySelector('#confirmImportConfirm');
 let isLoggedIn = false;
+let confirmImportResolver = null;
 
 const setStatus = (message, state = 'success') => {
   statusText.textContent = message;
@@ -167,6 +172,20 @@ const closeChangePasswordModal = () => {
   currentPasswordInput.value = '';
   newPasswordInput.value = '';
   confirmNewPasswordInput.value = '';
+};
+
+const openConfirmImportModal = (message) => {
+  confirmImportMessage.textContent = message;
+  confirmImportModal.classList.add('open');
+  confirmImportConfirmButton.focus();
+  return new Promise((resolve) => {
+    confirmImportResolver = resolve;
+  });
+};
+
+const closeConfirmImportModal = () => {
+  confirmImportModal.classList.remove('open');
+  confirmImportMessage.textContent = '';
 };
 
 const submitLogin = async () => {
@@ -546,7 +565,7 @@ memberImportInput.addEventListener('change', async (event) => {
 
   const previewData = await previewResponse.json();
   if (previewData.toDelete > 0) {
-    const confirmed = window.confirm(
+    const confirmed = await openConfirmImportModal(
       `Importing will remove ${previewData.toDelete} member(s) not listed and their transactions. Continue?`
     );
     if (!confirmed) {
@@ -616,6 +635,22 @@ changePasswordCancelButton.addEventListener('click', () => {
 
 changePasswordConfirmButton.addEventListener('click', () => {
   submitChangePassword();
+});
+
+confirmImportCancelButton.addEventListener('click', () => {
+  if (confirmImportResolver) {
+    confirmImportResolver(false);
+    confirmImportResolver = null;
+  }
+  closeConfirmImportModal();
+});
+
+confirmImportConfirmButton.addEventListener('click', () => {
+  if (confirmImportResolver) {
+    confirmImportResolver(true);
+    confirmImportResolver = null;
+  }
+  closeConfirmImportModal();
 });
 
 setupWebSocket();
