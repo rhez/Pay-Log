@@ -74,9 +74,9 @@
 
       <div class="footer-actions">
         <button class="button" id="undoTransactionButton" type="button">
-          ◀ Undo Last Transaction
+          <span class="triangle">◀</span> Undo Last Transaction
         </button>
-        <button class="button" type="button">Apply Transaction ▶</button>
+        <button class="button" type="button">Apply Transaction <span class="triangle">▶</span></button>
       </div>
 
       <div class="status status-fail" id="statusBar">
@@ -95,6 +95,21 @@
       <div class="modal-actions">
         <button class="button modal-button" type="button" id="loginCancel">Cancel</button>
         <button class="button modal-button" type="button" id="loginConfirm">OK</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="changePasswordModal" role="dialog" aria-modal="true" aria-labelledby="changePasswordTitle">
+    <div class="modal-card">
+      <h2 id="changePasswordTitle">Change Password</h2>
+      <label for="currentPassword">Current Password</label>
+      <input type="password" id="currentPassword" />
+      <label for="newPassword">New Password</label>
+      <input type="password" id="newPassword" />
+      <label for="confirmNewPassword">Confirm Password</label>
+      <input type="password" id="confirmNewPassword" />
+      <div class="modal-actions">
+        <button class="button modal-button" type="button" id="changePasswordCancel">Cancel</button>
+        <button class="button modal-button" type="button" id="changePasswordConfirm">OK</button>
       </div>
     </div>
   </div>
@@ -122,6 +137,12 @@
     const loginPasswordConfirmInput = document.querySelector('#loginPasswordConfirm');
     const loginCancelButton = document.querySelector('#loginCancel');
     const loginConfirmButton = document.querySelector('#loginConfirm');
+    const changePasswordModal = document.querySelector('#changePasswordModal');
+    const currentPasswordInput = document.querySelector('#currentPassword');
+    const newPasswordInput = document.querySelector('#newPassword');
+    const confirmNewPasswordInput = document.querySelector('#confirmNewPassword');
+    const changePasswordCancelButton = document.querySelector('#changePasswordCancel');
+    const changePasswordConfirmButton = document.querySelector('#changePasswordConfirm');
     let isLoggedIn = false;
     let adminPassword = '';
     let pendingLoginPassword = '';
@@ -231,11 +252,7 @@
     };
 
     const handleChangePassword = async () => {
-      const savedPassword = await fetchAdminPassword();
-      if (savedPassword === null) {
-        return;
-      }
-      setStatus('Change password via /api/admin/password.', 'fail');
+      openChangePasswordModal();
     };
 
     menuButton.addEventListener('click', (event) => {
@@ -269,6 +286,21 @@
       pendingLoginPassword = '';
     };
 
+    const openChangePasswordModal = () => {
+      currentPasswordInput.value = '';
+      newPasswordInput.value = '';
+      confirmNewPasswordInput.value = '';
+      changePasswordModal.classList.add('open');
+      currentPasswordInput.focus();
+    };
+
+    const closeChangePasswordModal = () => {
+      changePasswordModal.classList.remove('open');
+      currentPasswordInput.value = '';
+      newPasswordInput.value = '';
+      confirmNewPasswordInput.value = '';
+    };
+
     const submitLogin = async () => {
       const enteredPassword = loginPasswordInput.value;
       const confirmedPassword = loginPasswordConfirmInput.value;
@@ -296,6 +328,30 @@
       renderMenu();
       setStatus('Logged in successfully.', 'success');
       await loadMembers();
+    };
+
+    const submitChangePassword = async () => {
+      const savedPassword = await fetchAdminPassword();
+      if (savedPassword === null) {
+        return;
+      }
+
+      const currentPassword = currentPasswordInput.value;
+      const newPassword = newPasswordInput.value;
+      const confirmedPassword = confirmNewPasswordInput.value;
+
+      if (currentPassword !== savedPassword || newPassword !== confirmedPassword) {
+        setStatus('Password does not match.', 'fail');
+        return;
+      }
+
+      const saved = await saveAdminPassword(newPassword);
+      if (!saved) {
+        return;
+      }
+
+      closeChangePasswordModal();
+      setStatus('Password updated successfully.', 'success');
     };
 
     const getTodayDate = () => {
@@ -556,6 +612,14 @@
 
     loginConfirmButton.addEventListener('click', () => {
       submitLogin();
+    });
+
+    changePasswordCancelButton.addEventListener('click', () => {
+      closeChangePasswordModal();
+    });
+
+    changePasswordConfirmButton.addEventListener('click', () => {
+      submitChangePassword();
     });
   </script>
 </body>

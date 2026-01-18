@@ -116,6 +116,10 @@ body {
   background: #e0e0e0;
 }
 
+.triangle {
+  font-size: 22px;
+}
+
 .window-title {
   pointer-events: none;
 }
