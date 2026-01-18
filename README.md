@@ -6,7 +6,7 @@ Open `index.html` directly in a browser (offline is fine) to view the static UI.
 
 ## Backend
 
-This project includes a small Node/Express server backed by Postgres.
+This project includes a small Node/Express server backed by Postgres and runs over HTTP by default.
 
 1. Create the database schema:
 
