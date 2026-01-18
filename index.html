@@ -174,11 +174,6 @@
         : transactions;
 
       if (!filteredTransactions.length) {
-        const emptyRow = document.createElement('div');
-        emptyRow.className = 'table-row';
-        emptyRow.innerHTML =
-          '<div></div><div>No transactions</div><div class="amount"></div>';
-        transactionsBody.appendChild(emptyRow);
         return;
       }
 
@@ -301,7 +296,7 @@
         memberSelect.disabled = true;
         balanceValue.textContent = '$0.00';
         renderTransactions([], null);
-        setStatus('No members loaded.', 'success');
+        setStatus('No members loaded.', 'fail');
         return;
       }
 
