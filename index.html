@@ -124,7 +124,6 @@
     const modalConfirm = document.querySelector('#modalConfirm');
 
     let isLoggedIn = false;
-    const passwordKey = 'nvsPayLogPassword';
 
     const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
@@ -245,8 +244,34 @@
       }
     };
 
-    const handleLogin = () => {
-      const savedPassword = localStorage.getItem(passwordKey) || '';
+    const fetchAdminPassword = async () => {
+      const response = await fetch('/api/admin/password');
+      if (!response.ok) {
+        setStatus('Failed to load admin password.', 'fail');
+        return null;
+      }
+      const data = await response.json();
+      return data.password ?? '';
+    };
+
+    const saveAdminPassword = async (password) => {
+      const response = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (!response.ok) {
+        setStatus('Failed to save admin password.', 'fail');
+        return false;
+      }
+      return true;
+    };
+
+    const handleLogin = async () => {
+      const savedPassword = await fetchAdminPassword();
+      if (savedPassword === null) {
+        return;
+      }
       if (!savedPassword) {
         openModal({
           title: 'Set Password',
@@ -254,12 +279,15 @@
             { name: 'password', label: 'Set Password' },
             { name: 'confirm', label: 'Confirm Password' },
           ],
-          onConfirm: ({ password, confirm }) => {
+          onConfirm: async ({ password, confirm }) => {
             if (password !== confirm) {
               setStatus('Password does not match.', 'fail');
               return;
             }
-            localStorage.setItem(passwordKey, password);
+            const saved = await saveAdminPassword(password);
+            if (!saved) {
+              return;
+            }
             isLoggedIn = true;
             closeModal();
             renderMenu();
@@ -286,8 +314,11 @@
       }
     };
 
-    const handleChangePassword = () => {
-      const savedPassword = localStorage.getItem(passwordKey) || '';
+    const handleChangePassword = async () => {
+      const savedPassword = await fetchAdminPassword();
+      if (savedPassword === null) {
+        return;
+      }
       openModal({
         title: 'Change Password',
         fields: [
@@ -295,12 +326,15 @@
           { name: 'next', label: 'New Password' },
           { name: 'confirm', label: 'Confirm Password' },
         ],
-        onConfirm: ({ current, next, confirm }) => {
+        onConfirm: async ({ current, next, confirm }) => {
           if (current !== savedPassword || next !== confirm) {
             setStatus('Password does not match.', 'fail');
             return;
           }
-          localStorage.setItem(passwordKey, next);
+          const saved = await saveAdminPassword(next);
+          if (!saved) {
+            return;
+          }
           closeModal();
           setStatus('Password updated.', 'success');
         },

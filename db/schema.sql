@@ -12,3 +12,7 @@ CREATE TABLE IF NOT EXISTS "Transactions" (
   description TEXT NOT NULL DEFAULT '',
   amount NUMERIC(12, 2) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "Admin" (
+  password TEXT NOT NULL
+);

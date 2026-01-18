@@ -199,6 +199,31 @@ app.get("/api/members/:id", async (req, res) => {
   }
 });
 
+app.get("/api/admin/password", async (req, res) => {
+  try {
+    const result = await pool.query('SELECT password FROM "Admin" LIMIT 1');
+    res.json({ password: result.rows[0]?.password ?? "" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to load admin password." });
+  }
+});
+
+app.post("/api/admin/password", express.json(), async (req, res) => {
+  const { password } = req.body ?? {};
+  if (typeof password !== "string") {
+    res.status(400).json({ error: "Invalid password." });
+    return;
+  }
+
+  try {
+    await pool.query('DELETE FROM "Admin"');
+    await pool.query('INSERT INTO "Admin" (password) VALUES ($1)', [password]);
+    res.json({ saved: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to save admin password." });
+  }
+});
+
 app.post("/api/members/:id/transactions", express.json(), async (req, res) => {
   const memberId = Number(req.params.id);
   if (!Number.isInteger(memberId)) {
