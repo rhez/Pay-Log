@@ -29,6 +29,36 @@ const normalizeHeader = (value) =>
     .toLowerCase()
     .replace(/\s+/g, "_");
 
+const dollarsToCents = (value) => {
+  const normalized = String(value ?? "")
+    .replace(/[^0-9.-]/g, "")
+    .trim();
+  if (!normalized) {
+    return null;
+  }
+  const negative = normalized.startsWith("-");
+  const [wholePart, fractionalPart = ""] = normalized.replace("-", "").split(".");
+  const cents = `${fractionalPart}00`.slice(0, 2);
+  const combined = `${wholePart || "0"}${cents}`;
+  const parsed = Number.parseInt(combined, 10);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+  return negative ? -parsed : parsed;
+};
+
+const centsToDollars = (cents) => {
+  const value = Number(cents);
+  if (Number.isNaN(value)) {
+    return "0.00";
+  }
+  const negative = value < 0;
+  const absolute = Math.abs(value);
+  const dollars = Math.floor(absolute / 100);
+  const remainder = String(absolute % 100).padStart(2, "0");
+  return `${negative ? "-" : ""}${dollars}.${remainder}`;
+};
+
 const parseMembersFromCsv = (buffer) => {
   const text = buffer.toString("utf8");
   const rows = text
@@ -177,16 +207,18 @@ app.post("/api/members/:id/transactions", express.json(), async (req, res) => {
   }
 
   const { date, description, amount, type } = req.body ?? {};
-  const numericAmount = Number(amount);
+  const centsAmount = dollarsToCents(amount);
   const normalizedType = type === "credit" ? "credit" : "charge";
 
-  if (!date || Number.isNaN(numericAmount)) {
+  if (!date || centsAmount === null) {
     res.status(400).json({ error: "Invalid transaction payload." });
     return;
   }
 
   const signedAmount =
-    normalizedType === "credit" ? Math.abs(numericAmount) : -Math.abs(numericAmount);
+    normalizedType === "credit"
+      ? Math.abs(centsAmount)
+      : -Math.abs(centsAmount);
 
   try {
     const client = await pool.connect();
@@ -203,19 +235,28 @@ app.post("/api/members/:id/transactions", express.json(), async (req, res) => {
         return;
       }
 
-      await client.query(
-        'INSERT INTO "Transactions" (member_id, date, description, amount) VALUES ($1, $2, $3, $4)',
-        [memberId, date, description || "", signedAmount]
+      const balanceResult = await client.query(
+        'SELECT balance FROM "Members" WHERE id = $1',
+        [memberId]
       );
 
-      const balanceResult = await client.query(
-        'UPDATE "Members" SET balance = balance + $1 WHERE id = $2 RETURNING balance',
-        [signedAmount, memberId]
+      const currentCents = dollarsToCents(balanceResult.rows[0].balance);
+      const nextCents = (currentCents ?? 0) + signedAmount;
+      const nextBalance = centsToDollars(nextCents);
+
+      await client.query(
+        'INSERT INTO "Transactions" (member_id, date, description, amount) VALUES ($1, $2, $3, $4)',
+        [memberId, date, description || "", centsToDollars(signedAmount)]
+      );
+
+      await client.query(
+        'UPDATE "Members" SET balance = $1 WHERE id = $2',
+        [nextBalance, memberId]
       );
 
       await client.query("COMMIT");
 
-      res.json({ balance: balanceResult.rows[0].balance });
+      res.json({ balance: nextBalance });
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -250,17 +291,31 @@ app.delete("/api/members/:id/transactions/last", async (req, res) => {
       }
 
       const { id: transactionId, amount } = transactionResult.rows[0];
+      const amountCents = dollarsToCents(amount);
+      if (amountCents === null) {
+        res.status(400).json({ error: "Invalid transaction amount." });
+        return;
+      }
 
       await client.query('DELETE FROM "Transactions" WHERE id = $1', [transactionId]);
 
       const balanceResult = await client.query(
-        'UPDATE "Members" SET balance = balance - $1 WHERE id = $2 RETURNING balance',
-        [amount, memberId]
+        'SELECT balance FROM "Members" WHERE id = $1',
+        [memberId]
       );
+
+      const currentCents = dollarsToCents(balanceResult.rows[0].balance);
+      const nextCents = (currentCents ?? 0) - amountCents;
+      const nextBalance = centsToDollars(nextCents);
+
+      await client.query('UPDATE "Members" SET balance = $1 WHERE id = $2', [
+        nextBalance,
+        memberId,
+      ]);
 
       await client.query("COMMIT");
 
-      res.json({ balance: balanceResult.rows[0].balance, transactionId });
+      res.json({ balance: nextBalance, transactionId });
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;

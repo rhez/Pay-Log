@@ -157,13 +157,39 @@
       });
     });
 
+    const dollarsToCents = (value) => {
+      const normalized = String(value || '').replace(/[^0-9.-]/g, '').trim();
+      if (!normalized) {
+        return null;
+      }
+      const negative = normalized.startsWith('-');
+      const [wholePart, fractionalPart = ''] = normalized.replace('-', '').split('.');
+      const cents = `${fractionalPart}00`.slice(0, 2);
+      const combined = `${wholePart || '0'}${cents}`;
+      const parsed = Number.parseInt(combined, 10);
+      if (Number.isNaN(parsed)) {
+        return null;
+      }
+      return negative ? -parsed : parsed;
+    };
+
+    const centsToDollars = (cents) => {
+      const value = Number(cents);
+      if (Number.isNaN(value)) {
+        return '0.00';
+      }
+      const negative = value < 0;
+      const absolute = Math.abs(value);
+      const dollars = Math.floor(absolute / 100);
+      const remainder = String(absolute % 100).padStart(2, '0');
+      return `${negative ? '-' : ''}${dollars}.${remainder}`;
+    };
+
     const formatCurrency = (value) => {
-      const amount = Number(value || 0);
-      const formatted = Math.abs(amount).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-      return `${amount >= 0 ? '+' : '-'}$${formatted}`;
+      const cents = dollarsToCents(value);
+      const normalized = cents === null ? 0 : cents;
+      const formatted = centsToDollars(Math.abs(normalized));
+      return `${normalized >= 0 ? '+' : '-'}$${formatted}`;
     };
 
     const renderTransactions = (transactions, memberId) => {
@@ -200,13 +226,9 @@
       }
 
       const data = await response.json();
-      balanceValue.textContent = `$${Number(data.member.balance || 0).toLocaleString(
-        undefined,
-        {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }
-      )}`;
+      const balanceCents = dollarsToCents(data.member.balance);
+      const balanceText = centsToDollars(balanceCents ?? 0);
+      balanceValue.textContent = `$${balanceText.replace('-', '')}`;
       renderTransactions(data.transactions || [], memberId);
       setStatus(
         data.transactions && data.transactions.length
@@ -223,11 +245,9 @@
         return;
       }
 
-      const amountValue = Number(
-        transactionAmount.value.replace(/[^0-9.]/g, '')
-      );
+      const amountCents = dollarsToCents(transactionAmount.value);
       const dateValid = /^\d{4}-\d{2}-\d{2}$/.test(transactionDate.value);
-      const amountValid = !Number.isNaN(amountValue) && amountValue > 0;
+      const amountValid = amountCents !== null && amountCents > 0;
 
       if (!dateValid || !amountValid) {
         setStatus('Invalid date or amount.', 'fail');
@@ -238,7 +258,7 @@
       const payload = {
         date: transactionDate.value,
         description: descriptionInput.value || '',
-        amount: amountValue,
+        amount: centsToDollars(amountCents),
         type: selectedType?.value || 'charge',
       };
 
