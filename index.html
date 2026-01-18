@@ -159,7 +159,10 @@
         quitButton.textContent = 'Quit';
         quitButton.addEventListener('click', () => {
           closeMenu();
-          setStatus('Quit is disabled in browser previews.', 'fail');
+          const confirmed = window.confirm('Sure to Quit?');
+          if (confirmed) {
+            window.close();
+          }
         });
         menuOptions.append(loginButton, quitButton);
       } else {
