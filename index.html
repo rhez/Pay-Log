@@ -180,8 +180,9 @@
       filteredTransactions.forEach((transaction) => {
         const row = document.createElement('div');
         row.className = 'table-row';
+        const dateValue = String(transaction.date || '').split('T')[0];
         row.innerHTML = `
-          <div>${transaction.date}</div>
+          <div>${dateValue}</div>
           <div>${transaction.description || ''}</div>
           <div class="amount">${formatCurrency(transaction.amount)}</div>
         `;
