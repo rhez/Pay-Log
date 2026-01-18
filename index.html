@@ -153,18 +153,7 @@
           closeMenu();
           handleLogin();
         });
-        const quitButton = document.createElement('button');
-        quitButton.type = 'button';
-        quitButton.className = 'menu-item';
-        quitButton.textContent = 'Quit';
-        quitButton.addEventListener('click', () => {
-          closeMenu();
-          const confirmed = window.confirm('Sure to Quit?');
-          if (confirmed) {
-            close();
-          }
-        });
-        menuOptions.append(loginButton, quitButton);
+        menuOptions.append(loginButton);
       } else {
         const changeButton = document.createElement('button');
         changeButton.type = 'button';
