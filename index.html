@@ -124,6 +124,7 @@
     const modalConfirm = document.querySelector('#modalConfirm');
 
     let isLoggedIn = false;
+    let modalOnConfirm = null;
 
     const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
@@ -168,23 +169,28 @@
         modalFields.appendChild(wrapper);
       });
       modalOverlay.hidden = false;
-
-      modalForm.onsubmit = (event) => {
-        event.preventDefault();
-        const data = Object.fromEntries(new FormData(modalForm).entries());
-        onConfirm(data);
-      };
+      modalOnConfirm = onConfirm;
     };
 
     const closeModal = () => {
       modalOverlay.hidden = true;
-      modalForm.onsubmit = null;
+      modalOnConfirm = null;
       modalFields.innerHTML = '';
       modalTitle.textContent = '';
       modalForm.reset();
     };
 
-    modalCancel.addEventListener('click', () => {
+    modalForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!modalOnConfirm) {
+        return;
+      }
+      const data = Object.fromEntries(new FormData(modalForm).entries());
+      modalOnConfirm(data);
+    });
+
+    modalCancel.addEventListener('click', (event) => {
+      event.stopPropagation();
       closeModal();
     });
 
