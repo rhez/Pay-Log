@@ -28,9 +28,6 @@ const confirmNewPasswordInput = document.querySelector('#confirmNewPassword');
 const changePasswordCancelButton = document.querySelector('#changePasswordCancel');
 const changePasswordConfirmButton = document.querySelector('#changePasswordConfirm');
 let isLoggedIn = false;
-let adminPassword = '';
-let pendingLoginPassword = '';
-let socket = null;
 
 const setStatus = (message, state = 'success') => {
   statusText.textContent = message;
@@ -67,6 +64,25 @@ const clearPrivateFields = () => {
   renderTransactions([], null);
 };
 
+const sendLogoutRequest = () => {
+  if (navigator.sendBeacon) {
+    const payload = new Blob([], { type: 'text/plain' });
+    navigator.sendBeacon('/api/admin/logout', payload);
+    return;
+  }
+  fetch('/api/admin/logout', { method: 'POST', keepalive: true }).catch(() => {});
+};
+
+const logout = ({ suppressStatus = false } = {}) => {
+  isLoggedIn = false;
+  clearPrivateFields();
+  renderMenu();
+  sendLogoutRequest();
+  if (!suppressStatus) {
+    setStatus('Logged out.', 'success');
+  }
+};
+
 const renderMenu = () => {
   menuOptions.innerHTML = '';
   if (!isLoggedIn) {
@@ -94,50 +110,17 @@ const renderMenu = () => {
     logoutButton.textContent = 'Logout';
     logoutButton.addEventListener('click', () => {
       closeMenu();
-      isLoggedIn = false;
-      localStorage.removeItem('isLoggedIn');
-      clearPrivateFields();
-      renderMenu();
-      setStatus('Logged out.', 'success');
+      logout();
     });
     menuOptions.append(changeButton, logoutButton);
   }
 };
 
-const fetchAdminPassword = async () => {
-  const response = await fetch('/api/admin/password');
-  if (!response.ok) {
-    setStatus('Failed to load admin password.', 'fail');
-    return null;
-  }
-  const data = await response.json();
-  adminPassword = data.password ?? '';
-  return adminPassword;
-};
-
-const saveAdminPassword = async (password) => {
-  const response = await fetch('/api/admin/password', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password }),
-  });
-  if (!response.ok) {
-    setStatus('Failed to save admin password.', 'fail');
-    return false;
-  }
-  return true;
-};
-
-const handleLogin = async () => {
-  const savedPassword = await fetchAdminPassword();
-  if (savedPassword === null) {
-    return;
-  }
-  pendingLoginPassword = savedPassword ?? '';
+const handleLogin = () => {
   openLoginModal();
 };
 
-const handleChangePassword = async () => {
+const handleChangePassword = () => {
   openChangePasswordModal();
 };
 
@@ -169,7 +152,6 @@ const closeLoginModal = () => {
   loginModal.classList.remove('open');
   loginPasswordInput.value = '';
   loginPasswordConfirmInput.value = '';
-  pendingLoginPassword = '';
 };
 
 const openChangePasswordModal = () => {
@@ -196,20 +178,27 @@ const submitLogin = async () => {
     return;
   }
 
-  if (pendingLoginPassword && enteredPassword !== pendingLoginPassword) {
-    setStatus('Password does not match.', 'fail');
+  const response = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      password: enteredPassword,
+      confirmPassword: confirmedPassword,
+    }),
+  });
+
+  if (!response.ok) {
+    setStatus('Login failed.', 'fail');
     return;
   }
 
-  if (!pendingLoginPassword) {
-    const saved = await saveAdminPassword(enteredPassword);
-    if (!saved) {
-      return;
-    }
+  const data = await response.json().catch(() => ({ success: false }));
+  if (!data.success) {
+    setStatus('Login failed.', 'fail');
+    return;
   }
 
   isLoggedIn = true;
-  localStorage.setItem('isLoggedIn', 'true');
   transactionDate.value = getTodayDate();
   closeLoginModal();
   renderMenu();
@@ -218,22 +207,33 @@ const submitLogin = async () => {
 };
 
 const submitChangePassword = async () => {
-  const savedPassword = await fetchAdminPassword();
-  if (savedPassword === null) {
-    return;
-  }
-
   const currentPassword = currentPasswordInput.value;
   const newPassword = newPasswordInput.value;
   const confirmedPassword = confirmNewPasswordInput.value;
 
-  if (currentPassword !== savedPassword || newPassword !== confirmedPassword) {
+  if (!currentPassword || !newPassword || newPassword !== confirmedPassword) {
     setStatus('Password does not match.', 'fail');
     return;
   }
 
-  const saved = await saveAdminPassword(newPassword);
-  if (!saved) {
+  const response = await fetch('/api/admin/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      currentPassword,
+      newPassword,
+      confirmPassword: confirmedPassword,
+    }),
+  });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+    return;
+  }
+
+  const data = await response.json().catch(() => ({ success: false }));
+  if (!response.ok || !data.success) {
+    setStatus('Failed to update password.', 'fail');
     return;
   }
 
@@ -320,6 +320,10 @@ const renderTransactions = (transactions, memberId) => {
 
 const loadMember = async (memberId, { suppressStatus = false } = {}) => {
   const response = await fetch(`/api/members/${memberId}`);
+  if (response.status === 401) {
+    handleUnauthorized();
+    return;
+  }
   if (!response.ok) {
     balanceValue.textContent = '$0.00';
     renderTransactions([], memberId);
@@ -374,7 +378,9 @@ const applyTransaction = async () => {
     body: JSON.stringify(payload),
   });
 
-  if (response.ok) {
+  if (response.status === 401) {
+    handleUnauthorized();
+  } else if (response.ok) {
     await loadMember(selectedId);
     setStatus('Transaction applied successfully.', 'success');
   } else {
@@ -393,7 +399,9 @@ const undoLastTransaction = async () => {
     method: 'DELETE',
   });
 
-  if (response.ok) {
+  if (response.status === 401) {
+    handleUnauthorized();
+  } else if (response.ok) {
     await loadMember(selectedId);
     setStatus('Last transaction undone.', 'success');
   } else {
@@ -405,6 +413,10 @@ const loadMembers = async (
   { suppressStatus = false, preserveSelection = false } = {}
 ) => {
   const response = await fetch('/api/members');
+  if (response.status === 401) {
+    handleUnauthorized();
+    return;
+  }
   if (!response.ok) {
     memberSelect.innerHTML = '<option>No members</option>';
     memberSelect.disabled = true;
@@ -464,10 +476,9 @@ const handleSocketMessage = (data) => {
 };
 
 const setupWebSocket = () => {
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const wsUrl = `${protocol}://${window.location.host}`;
-  socket = new WebSocket(wsUrl);
-  socket.addEventListener('message', (event) => {
+  const wsUrl = `ws://${window.location.host}`;
+  const ws = new WebSocket(wsUrl);
+  ws.addEventListener('message', (event) => {
     let data = null;
     try {
       data = JSON.parse(event.data);
@@ -513,6 +524,11 @@ memberImportInput.addEventListener('change', async (event) => {
     body: formData,
   });
 
+  if (previewResponse.status === 401) {
+    handleUnauthorized();
+    memberImportInput.value = '';
+    return;
+  }
   if (!previewResponse.ok) {
     memberImportInput.value = '';
     setStatus('Failed to preview import.', 'fail');
@@ -532,7 +548,9 @@ memberImportInput.addEventListener('change', async (event) => {
     body: formData,
   });
 
-  if (response.ok) {
+  if (response.status === 401) {
+    handleUnauthorized();
+  } else if (response.ok) {
     await loadMembers();
     setStatus('Members imported successfully.', 'success');
   } else {
@@ -542,15 +560,34 @@ memberImportInput.addEventListener('change', async (event) => {
   memberImportInput.value = '';
 });
 
-isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-if (isLoggedIn) {
-  transactionDate.value = getTodayDate();
-  renderMenu();
-  loadMembers();
-} else {
+const handleUnauthorized = () => {
+  isLoggedIn = false;
   clearPrivateFields();
   renderMenu();
-}
+  setStatus('Please log in to continue.', 'fail');
+};
+
+const initializeSession = async () => {
+  try {
+    const response = await fetch('/api/admin/session');
+    if (!response.ok) {
+      throw new Error('Failed to load session.');
+    }
+    const data = await response.json();
+    isLoggedIn = Boolean(data.authenticated);
+  } catch (error) {
+    isLoggedIn = false;
+  }
+
+  if (isLoggedIn) {
+    transactionDate.value = getTodayDate();
+    renderMenu();
+    await loadMembers();
+  } else {
+    clearPrivateFields();
+    renderMenu();
+  }
+};
 
 loginCancelButton.addEventListener('click', () => {
   closeLoginModal();
@@ -569,3 +606,12 @@ changePasswordConfirmButton.addEventListener('click', () => {
 });
 
 setupWebSocket();
+initializeSession();
+
+window.addEventListener('pagehide', () => {
+  if (isLoggedIn) {
+    logout({ suppressStatus: true });
+  } else {
+    sendLogoutRequest();
+  }
+});
