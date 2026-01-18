@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import http from "http";
+import https from "https";
 import pg from "pg";
 import multer from "multer";
 import xlsx from "xlsx";
@@ -13,7 +13,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const server = http.createServer(app);
+const httpsKeyPath = process.env.SSL_KEY_PATH;
+const httpsCertPath = process.env.SSL_CERT_PATH;
+if (!httpsKeyPath || !httpsCertPath) {
+  throw new Error(
+    "SSL_KEY_PATH and SSL_CERT_PATH must be set to run the HTTPS server."
+  );
+}
+const server = https.createServer(
+  {
+    key: fs.readFileSync(httpsKeyPath),
+    cert: fs.readFileSync(httpsCertPath),
+  },
+  app
+);
 const wss = new WebSocketServer({ server });
 const pool = new Pool({
   connectionString:
@@ -608,5 +621,5 @@ app.post(
 
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
-  console.log(`NVS Pay Log server running on port ${port}`);
+  console.log(`NVS Pay Log HTTPS server running on port ${port}`);
 });
