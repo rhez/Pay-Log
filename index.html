@@ -15,9 +15,7 @@
           <span class="menu-line"></span>
           <span class="menu-line"></span>
         </button>
-        <div class="menu-dropdown" role="menu">
-          <button type="button" class="menu-item" role="menuitem">Change Password</button>
-        </div>
+        <div class="menu-dropdown" role="menu" id="menuOptions"></div>
       </div>
       <div class="window-title">NVS Pay Log</div>
     </div>
@@ -87,10 +85,22 @@
       </div>
     </div>
   </div>
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal">
+      <h2 class="modal-title" id="modalTitle"></h2>
+      <form id="modalForm" class="modal-form">
+        <div class="modal-fields" id="modalFields"></div>
+        <div class="modal-actions">
+          <button type="button" class="button" id="modalCancel">Cancel</button>
+          <button type="submit" class="button" id="modalConfirm">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
   <script>
     const menu = document.querySelector('.window-menu');
     const menuButton = document.querySelector('.menu-button');
-    const menuItems = document.querySelectorAll('.menu-item');
+    const menuOptions = document.querySelector('#menuOptions');
     const memberSelect = document.querySelector('#memberSelect');
     const balanceValue = document.querySelector('#balanceValue');
     const transactionsBody = document.querySelector('#transactionsBody');
@@ -106,6 +116,15 @@
     const statusBar = document.querySelector('#statusBar');
     const statusEmoji = document.querySelector('#statusEmoji');
     const statusText = document.querySelector('#statusText');
+    const modalOverlay = document.querySelector('#modalOverlay');
+    const modalTitle = document.querySelector('#modalTitle');
+    const modalFields = document.querySelector('#modalFields');
+    const modalForm = document.querySelector('#modalForm');
+    const modalCancel = document.querySelector('#modalCancel');
+    const modalConfirm = document.querySelector('#modalConfirm');
+
+    let isLoggedIn = false;
+    const passwordKey = 'nvsPayLogPassword';
 
     const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
@@ -134,6 +153,160 @@
       menuButton.setAttribute('aria-expanded', 'false');
     };
 
+    const openModal = ({ title, fields, onConfirm }) => {
+      modalTitle.textContent = title;
+      modalFields.innerHTML = '';
+      fields.forEach((field) => {
+        const wrapper = document.createElement('label');
+        wrapper.className = 'modal-field';
+        wrapper.textContent = field.label;
+        const input = document.createElement('input');
+        input.type = field.type || 'password';
+        input.name = field.name;
+        input.required = true;
+        wrapper.appendChild(input);
+        modalFields.appendChild(wrapper);
+      });
+      modalOverlay.hidden = false;
+
+      modalForm.onsubmit = (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(modalForm).entries());
+        onConfirm(data);
+      };
+    };
+
+    const closeModal = () => {
+      modalOverlay.hidden = true;
+      modalForm.onsubmit = null;
+      modalFields.innerHTML = '';
+    };
+
+    modalCancel.addEventListener('click', () => {
+      closeModal();
+    });
+
+    modalOverlay.addEventListener('click', (event) => {
+      if (event.target === modalOverlay) {
+        closeModal();
+      }
+    });
+
+    const clearPrivateFields = () => {
+      memberSelect.innerHTML = '';
+      memberSelect.disabled = true;
+      balanceValue.textContent = '$0.00';
+      descriptionInput.value = '';
+      transactionAmount.value = '';
+      renderTransactions([], null);
+    };
+
+    const renderMenu = () => {
+      menuOptions.innerHTML = '';
+      if (!isLoggedIn) {
+        const loginButton = document.createElement('button');
+        loginButton.type = 'button';
+        loginButton.className = 'menu-item';
+        loginButton.textContent = 'Login';
+        loginButton.addEventListener('click', () => {
+          closeMenu();
+          handleLogin();
+        });
+        const quitButton = document.createElement('button');
+        quitButton.type = 'button';
+        quitButton.className = 'menu-item';
+        quitButton.textContent = 'Quit';
+        quitButton.addEventListener('click', () => {
+          closeMenu();
+          window.close();
+        });
+        menuOptions.append(loginButton, quitButton);
+      } else {
+        const changeButton = document.createElement('button');
+        changeButton.type = 'button';
+        changeButton.className = 'menu-item';
+        changeButton.textContent = 'Change Password';
+        changeButton.addEventListener('click', () => {
+          closeMenu();
+          handleChangePassword();
+        });
+        const logoutButton = document.createElement('button');
+        logoutButton.type = 'button';
+        logoutButton.className = 'menu-item';
+        logoutButton.textContent = 'Logout';
+        logoutButton.addEventListener('click', () => {
+          closeMenu();
+          isLoggedIn = false;
+          clearPrivateFields();
+          renderMenu();
+          setStatus('Logged out.', 'success');
+        });
+        menuOptions.append(changeButton, logoutButton);
+      }
+    };
+
+    const handleLogin = () => {
+      const savedPassword = localStorage.getItem(passwordKey) || '';
+      if (!savedPassword) {
+        openModal({
+          title: 'Set Password',
+          fields: [
+            { name: 'password', label: 'Set Password' },
+            { name: 'confirm', label: 'Confirm Password' },
+          ],
+          onConfirm: ({ password, confirm }) => {
+            if (password !== confirm) {
+              setStatus('Password does not match.', 'fail');
+              return;
+            }
+            localStorage.setItem(passwordKey, password);
+            isLoggedIn = true;
+            closeModal();
+            renderMenu();
+            loadMembers();
+            setStatus('Logged in.', 'success');
+          },
+        });
+      } else {
+        openModal({
+          title: 'Enter Password',
+          fields: [{ name: 'password', label: 'Enter Password' }],
+          onConfirm: ({ password }) => {
+            if (password !== savedPassword) {
+              setStatus('Password does not match.', 'fail');
+              return;
+            }
+            isLoggedIn = true;
+            closeModal();
+            renderMenu();
+            loadMembers();
+            setStatus('Logged in.', 'success');
+          },
+        });
+      }
+    };
+
+    const handleChangePassword = () => {
+      const savedPassword = localStorage.getItem(passwordKey) || '';
+      openModal({
+        title: 'Change Password',
+        fields: [
+          { name: 'current', label: 'Current Password' },
+          { name: 'next', label: 'New Password' },
+          { name: 'confirm', label: 'Confirm Password' },
+        ],
+        onConfirm: ({ current, next, confirm }) => {
+          if (current !== savedPassword || next !== confirm) {
+            setStatus('Password does not match.', 'fail');
+            return;
+          }
+          localStorage.setItem(passwordKey, next);
+          closeModal();
+          setStatus('Password updated.', 'success');
+        },
+      });
+    };
+
     menuButton.addEventListener('click', (event) => {
       event.stopPropagation();
       const isOpen = menu.classList.contains('open');
@@ -149,12 +322,6 @@
       if (!event.target.closest('.window-menu')) {
         closeMenu();
       }
-    });
-
-    menuItems.forEach((item) => {
-      item.addEventListener('click', () => {
-        closeMenu();
-      });
     });
 
     const dollarsToCents = (value) => {
@@ -401,7 +568,9 @@
       memberImportInput.value = '';
     });
 
-    loadMembers();
+    isLoggedIn = false;
+    clearPrivateFields();
+    renderMenu();
   </script>
 </body>
 </html>

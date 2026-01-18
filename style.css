@@ -116,6 +116,68 @@ body {
   background: #e0e0e0;
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.modal {
+  background: #f7f7f7;
+  border: 2px solid #4a4a4a;
+  border-radius: 14px;
+  padding: 16px;
+  width: 360px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 16px;
+}
+
+.modal-field input {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-actions .button {
+  min-width: auto;
+  flex: 1;
+}
+
 .window-title {
   pointer-events: none;
 }
