@@ -85,6 +85,19 @@
       </div>
     </div>
   </div>
+  <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+    <div class="modal-card">
+      <h2 id="loginModalTitle">Login</h2>
+      <label for="loginPassword">Enter Password</label>
+      <input type="password" id="loginPassword" />
+      <label for="loginPasswordConfirm">Confirm Password</label>
+      <input type="password" id="loginPasswordConfirm" />
+      <div class="modal-actions">
+        <button class="button modal-button" type="button" id="loginCancel">Cancel</button>
+        <button class="button modal-button" type="button" id="loginConfirm">OK</button>
+      </div>
+    </div>
+  </div>
   <script>
     const menu = document.querySelector('.window-menu');
     const menuButton = document.querySelector('.menu-button');
@@ -104,8 +117,14 @@
     const statusBar = document.querySelector('#statusBar');
     const statusEmoji = document.querySelector('#statusEmoji');
     const statusText = document.querySelector('#statusText');
+    const loginModal = document.querySelector('#loginModal');
+    const loginPasswordInput = document.querySelector('#loginPassword');
+    const loginPasswordConfirmInput = document.querySelector('#loginPasswordConfirm');
+    const loginCancelButton = document.querySelector('#loginCancel');
+    const loginConfirmButton = document.querySelector('#loginConfirm');
     let isLoggedIn = false;
     let adminPassword = '';
+    let pendingLoginPassword = '';
 
     const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
@@ -207,11 +226,8 @@
       if (savedPassword === null) {
         return;
       }
-      if (!savedPassword) {
-        setStatus('Set password via /api/admin/password.', 'fail');
-        return;
-      }
-      setStatus('Login disabled without pop-ups.', 'fail');
+      pendingLoginPassword = savedPassword ?? '';
+      openLoginModal();
     };
 
     const handleChangePassword = async () => {
@@ -238,6 +254,48 @@
         closeMenu();
       }
     });
+
+    const openLoginModal = () => {
+      loginPasswordInput.value = '';
+      loginPasswordConfirmInput.value = '';
+      loginModal.classList.add('open');
+      loginPasswordInput.focus();
+    };
+
+    const closeLoginModal = () => {
+      loginModal.classList.remove('open');
+      loginPasswordInput.value = '';
+      loginPasswordConfirmInput.value = '';
+      pendingLoginPassword = '';
+    };
+
+    const submitLogin = async () => {
+      const enteredPassword = loginPasswordInput.value;
+      const confirmedPassword = loginPasswordConfirmInput.value;
+
+      if (!enteredPassword || enteredPassword !== confirmedPassword) {
+        setStatus('Password does not match.', 'fail');
+        return;
+      }
+
+      if (pendingLoginPassword && enteredPassword !== pendingLoginPassword) {
+        setStatus('Password does not match.', 'fail');
+        return;
+      }
+
+      if (!pendingLoginPassword) {
+        const saved = await saveAdminPassword(enteredPassword);
+        if (!saved) {
+          return;
+        }
+      }
+
+      isLoggedIn = true;
+      closeLoginModal();
+      renderMenu();
+      setStatus('Logged in successfully.', 'success');
+      await loadMembers();
+    };
 
     const dollarsToCents = (value) => {
       const normalized = String(value || '').replace(/[^0-9.-]/g, '').trim();
@@ -482,6 +540,14 @@
     isLoggedIn = false;
     clearPrivateFields();
     renderMenu();
+
+    loginCancelButton.addEventListener('click', () => {
+      closeLoginModal();
+    });
+
+    loginConfirmButton.addEventListener('click', () => {
+      submitLogin();
+    });
   </script>
 </body>
 </html>

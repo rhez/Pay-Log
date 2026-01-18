@@ -150,6 +150,7 @@ body {
 select,
 input[type="text"],
 input[type="date"],
+input[type="password"],
 textarea {
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -324,4 +325,52 @@ textarea {
 
 .status-fail {
   color: #c21c1c;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-card {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal-card h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.modal-card label {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.modal-button {
+  min-width: 140px;
+  font-size: 20px;
 }
