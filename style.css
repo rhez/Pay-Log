@@ -222,9 +222,6 @@ textarea {
   border-radius: 10px;
 }
 
-.amount-row input[type="text"] {
-  width: 230px;
-}
 
 .amount-row .input-group {
   justify-content: space-between;
@@ -312,7 +309,7 @@ textarea {
 
 .status-text {
   font-size: 20px;
-  color: #1d1d1d;
+  color: inherit;
 }
 
 .status-success {
