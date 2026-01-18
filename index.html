@@ -107,10 +107,6 @@
     const statusEmoji = document.querySelector('#statusEmoji');
     const statusText = document.querySelector('#statusText');
 
-    const today = new Date().toISOString().split('T')[0];
-    transactionDate.value = today;
-    setStatus('Ready.', 'success');
-
     const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
       statusBar.classList.remove('status-success', 'status-fail');
@@ -128,6 +124,10 @@
         statusEmoji.classList.add('status-fail');
       }
     };
+
+    const today = new Date().toISOString().split('T')[0];
+    transactionDate.value = today;
+    setStatus('Ready.', 'success');
 
     const closeMenu = () => {
       menu.classList.remove('open');
