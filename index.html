@@ -488,7 +488,6 @@
         await loadMember(selectedId);
         transactionAmount.value = '';
         descriptionInput.value = '';
-        resetTransactionType();
         setStatus('Transaction applied successfully.', 'success');
       } else {
         setStatus('Failed to apply transaction.', 'fail');
@@ -511,7 +510,6 @@
 
       if (response.ok) {
         await loadMember(selectedId);
-        resetTransactionType();
         setStatus('Last transaction undone.', 'success');
       } else {
         setStatus('Failed to undo last transaction.', 'fail');
