@@ -81,9 +81,9 @@
         <button class="button" type="button">Apply Transaction ▶</button>
       </div>
 
-      <div class="status status-success" id="statusBar">
-        <span class="status-emoji status-success" id="statusEmoji" aria-hidden="true">✅</span>
-        <span class="status-text status-success" id="statusText">Ready.</span>
+      <div class="status status-fail" id="statusBar">
+        <span class="status-emoji status-fail" id="statusEmoji" aria-hidden="true">❌</span>
+        <span class="status-text status-fail" id="statusText">No connection to database.</span>
       </div>
     </div>
   </div>
@@ -127,7 +127,7 @@
 
     const today = new Date().toISOString().split('T')[0];
     transactionDate.value = today;
-    setStatus('Ready.', 'success');
+    setStatus('No connection to database.', 'fail');
 
     const closeMenu = () => {
       menu.classList.remove('open');
