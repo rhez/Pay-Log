@@ -122,10 +122,6 @@ body {
   display: inline-block;
 }
 
-.triangle-left {
-  transform: rotate(180deg);
-}
-
 .window-title {
   pointer-events: none;
 }
