@@ -420,6 +420,12 @@
           <div>${transaction.description || ''}</div>
           <div class="amount">${formatCurrency(transaction.amount)}</div>
         `;
+        row.addEventListener('click', () => {
+          transactionsBody
+            .querySelectorAll('.table-row.selected')
+            .forEach((selectedRow) => selectedRow.classList.remove('selected'));
+          row.classList.add('selected');
+        });
         transactionsBody.appendChild(row);
       });
     };

@@ -304,6 +304,11 @@ textarea {
   align-items: center;
 }
 
+.table-row.selected {
+  background: #0a5bb5;
+  color: #fff;
+}
+
 .table-row .amount {
   text-align: right;
   padding-right: 10px;
