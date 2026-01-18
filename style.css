@@ -119,6 +119,11 @@ body {
 .triangle {
   font-size: 24px;
   line-height: 1;
+  display: inline-block;
+}
+
+.triangle-left {
+  transform: rotate(180deg);
 }
 
 .window-title {
