@@ -143,8 +143,6 @@
       }
     };
 
-    const today = new Date().toISOString().split('T')[0];
-    transactionDate.value = today;
     setStatus('No connection to database.', 'fail');
 
     const closeMenu = () => {
@@ -197,6 +195,7 @@
       balanceValue.textContent = '$0.00';
       descriptionInput.value = '';
       transactionAmount.value = '';
+      transactionDate.value = '';
       renderTransactions([], null);
     };
 
@@ -291,6 +290,7 @@
             isLoggedIn = true;
             closeModal();
             renderMenu();
+            transactionDate.value = new Date().toISOString().split('T')[0];
             loadMembers();
             setStatus('Logged in.', 'success');
           },
@@ -307,6 +307,7 @@
             isLoggedIn = true;
             closeModal();
             renderMenu();
+            transactionDate.value = new Date().toISOString().split('T')[0];
             loadMembers();
             setStatus('Logged in.', 'success');
           },
