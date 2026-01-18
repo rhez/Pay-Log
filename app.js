@@ -476,8 +476,7 @@ const handleSocketMessage = (data) => {
 };
 
 const setupWebSocket = () => {
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const wsUrl = `${protocol}://${window.location.host}`;
+  const wsUrl = `ws://${window.location.host}`;
   const ws = new WebSocket(wsUrl);
   ws.addEventListener('message', (event) => {
     let data = null;
