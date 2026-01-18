@@ -488,8 +488,6 @@
 
       if (response.ok) {
         await loadMember(selectedId);
-        transactionAmount.value = '';
-        descriptionInput.value = '';
         setStatus('Transaction applied successfully.', 'success');
       } else {
         setStatus('Failed to apply transaction.', 'fail');
