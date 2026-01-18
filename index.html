@@ -180,14 +180,7 @@
       descriptionInput.value = '';
       transactionAmount.value = '';
       transactionDate.value = '';
-      resetTransactionType();
       renderTransactions([], null);
-    };
-
-    const resetTransactionType = () => {
-      if (chargeRadio) {
-        chargeRadio.checked = true;
-      }
     };
 
     const renderMenu = () => {
@@ -432,7 +425,6 @@
     };
 
     const loadMember = async (memberId) => {
-      resetTransactionType();
       const response = await fetch(`/api/members/${memberId}`);
       if (!response.ok) {
         balanceValue.textContent = '$0.00';
@@ -616,7 +608,6 @@
     isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (isLoggedIn) {
       transactionDate.value = getTodayDate();
-      resetTransactionType();
       renderMenu();
       loadMembers();
     } else {
