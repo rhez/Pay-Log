@@ -81,9 +81,9 @@
         <button class="button" type="button">Apply Transaction ▶</button>
       </div>
 
-      <div class="status" id="statusBar">
-        <span class="status-emoji" id="statusEmoji" aria-hidden="true">✅</span>
-        <span class="status-text" id="statusText">Ready.</span>
+      <div class="status status-success" id="statusBar">
+        <span class="status-emoji status-success" id="statusEmoji" aria-hidden="true">✅</span>
+        <span class="status-text status-success" id="statusText">Ready.</span>
       </div>
     </div>
   </div>
@@ -109,6 +109,7 @@
 
     const today = new Date().toISOString().split('T')[0];
     transactionDate.value = today;
+    setStatus('Ready.', 'success');
 
     const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
