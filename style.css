@@ -117,7 +117,8 @@ body {
 }
 
 .triangle {
-  font-size: 22px;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .window-title {
