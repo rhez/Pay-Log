@@ -6,7 +6,6 @@ import pg from "pg";
 import multer from "multer";
 import xlsx from "xlsx";
 import { WebSocketServer } from "ws";
-import fs from "fs";
 import crypto from "crypto";
 
 const { Pool } = pg;
@@ -36,7 +35,7 @@ const pool = new Pool({
 const upload = multer({ storage: multer.memoryStorage() });
 const sessions = new Map();
 const sessionMaxAgeMs = 8 * 60 * 60 * 1000;
-const cookieSecurityFlags = "HttpOnly; Secure; SameSite=Strict";
+const cookieSecurityFlags = "HttpOnly; SameSite=Strict";
 
 app.use(express.static(__dirname));
 
@@ -72,7 +71,7 @@ const getSession = (req) => {
 const requireAuth = (req, res, next) => {
   const currentSession = getSession(req);
   if (!currentSession) {
-    res.status(401).json({ error: "Unauthorized." });
+    res.status(401).json({ success: false });
     return;
   }
   next();
@@ -287,7 +286,7 @@ app.get("/api/admin/session", (req, res) => {
 app.post("/api/admin/login", express.json(), async (req, res) => {
   const { password, confirmPassword } = req.body ?? {};
   if (typeof password !== "string") {
-    res.status(400).json({ success: false, error: "Invalid password." });
+    res.status(400).json({ success: false });
     return;
   }
 
@@ -297,16 +296,13 @@ app.post("/api/admin/login", express.json(), async (req, res) => {
 
     if (!savedPassword) {
       if (!confirmPassword || confirmPassword !== password) {
-        res
-          .status(400)
-          .json({ success: false, error: "Password does not match." });
+        res.status(400).json({ success: false });
         return;
       }
-
       await pool.query('DELETE FROM "Admin"');
       await pool.query('INSERT INTO "Admin" (password) VALUES ($1)', [password]);
     } else if (password !== savedPassword) {
-      res.status(401).json({ success: false, error: "Password does not match." });
+      res.status(401).json({ success: false });
       return;
     }
 
@@ -320,7 +316,7 @@ app.post("/api/admin/login", express.json(), async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to login." });
+    res.status(500).json({ success: false });
   }
 });
 
@@ -340,14 +336,12 @@ app.post(
       typeof newPassword !== "string" ||
       typeof confirmPassword !== "string"
     ) {
-      res.status(400).json({ success: false, error: "Invalid password." });
+      res.status(400).json({ success: false });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      res
-        .status(400)
-        .json({ success: false, error: "Password does not match." });
+      res.status(400).json({ success: false });
       return;
     }
 
@@ -356,9 +350,7 @@ app.post(
       const savedPassword = result.rows[0]?.password ?? "";
 
       if (currentPassword !== savedPassword) {
-        res
-          .status(401)
-          .json({ success: false, error: "Password does not match." });
+        res.status(401).json({ success: false });
         return;
       }
 
@@ -368,9 +360,7 @@ app.post(
       ]);
       res.json({ success: true });
     } catch (error) {
-      res
-        .status(500)
-        .json({ success: false, error: "Failed to save admin password." });
+      res.status(500).json({ success: false });
     }
   }
 );
@@ -405,20 +395,15 @@ app.post(
       try {
         await client.query("BEGIN");
 
-        const memberResult = await client.query(
-          'SELECT balance FROM "Members" WHERE id = $1',
-          [memberId]
-        );
-
-        if (memberResult.rowCount === 0) {
-          res.status(404).json({ error: "Member not found." });
-          return;
-        }
-
         const balanceResult = await client.query(
           'SELECT balance FROM "Members" WHERE id = $1',
           [memberId]
         );
+
+        if (balanceResult.rowCount === 0) {
+          res.status(404).json({ error: "Member not found." });
+          return;
+        }
 
         const currentCents = dollarsToCents(balanceResult.rows[0].balance);
         const nextCents = (currentCents ?? 0) + signedAmount;

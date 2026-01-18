@@ -28,7 +28,6 @@ const confirmNewPasswordInput = document.querySelector('#confirmNewPassword');
 const changePasswordCancelButton = document.querySelector('#changePasswordCancel');
 const changePasswordConfirmButton = document.querySelector('#changePasswordConfirm');
 let isLoggedIn = false;
-let socket = null;
 
 const setStatus = (message, state = 'success') => {
   statusText.textContent = message;
@@ -117,11 +116,11 @@ const renderMenu = () => {
   }
 };
 
-const handleLogin = async () => {
+const handleLogin = () => {
   openLoginModal();
 };
 
-const handleChangePassword = async () => {
+const handleChangePassword = () => {
   openChangePasswordModal();
 };
 
@@ -189,8 +188,13 @@ const submitLogin = async () => {
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    setStatus(data.error || 'Login failed.', 'fail');
+    setStatus('Login failed.', 'fail');
+    return;
+  }
+
+  const data = await response.json().catch(() => ({ success: false }));
+  if (!data.success) {
+    setStatus('Login failed.', 'fail');
     return;
   }
 
@@ -226,9 +230,10 @@ const submitChangePassword = async () => {
     handleUnauthorized();
     return;
   }
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    setStatus(data.error || 'Failed to update password.', 'fail');
+
+  const data = await response.json().catch(() => ({ success: false }));
+  if (!response.ok || !data.success) {
+    setStatus('Failed to update password.', 'fail');
     return;
   }
 
@@ -473,8 +478,8 @@ const handleSocketMessage = (data) => {
 const setupWebSocket = () => {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const wsUrl = `${protocol}://${window.location.host}`;
-  socket = new WebSocket(wsUrl);
-  socket.addEventListener('message', (event) => {
+  const ws = new WebSocket(wsUrl);
+  ws.addEventListener('message', (event) => {
     let data = null;
     try {
       data = JSON.parse(event.data);
