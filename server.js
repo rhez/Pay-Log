@@ -36,6 +36,7 @@ const pool = new Pool({
 const upload = multer({ storage: multer.memoryStorage() });
 const sessions = new Map();
 const sessionMaxAgeMs = 8 * 60 * 60 * 1000;
+const cookieSecurityFlags = "HttpOnly; Secure; SameSite=Strict";
 
 app.use(express.static(__dirname));
 
@@ -84,7 +85,7 @@ const clearSession = (req, res) => {
   }
   res.setHeader(
     "Set-Cookie",
-    "admin_session=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/"
+    `admin_session=; ${cookieSecurityFlags}; Max-Age=0; Path=/`
   );
 };
 
@@ -313,7 +314,7 @@ app.post("/api/admin/login", express.json(), async (req, res) => {
     sessions.set(token, { createdAt: Date.now() });
     res.setHeader(
       "Set-Cookie",
-      `admin_session=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=${
+      `admin_session=${token}; ${cookieSecurityFlags}; Max-Age=${
         sessionMaxAgeMs / 1000
       }; Path=/`
     );
