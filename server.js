@@ -11,7 +11,8 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString:
+    process.env.DATABASE_URL || "postgres://localhost/nvs_pay_log",
 });
 const upload = multer({ storage: multer.memoryStorage() });
 
