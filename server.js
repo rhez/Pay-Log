@@ -1,15 +1,19 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import http from "http";
 import pg from "pg";
 import multer from "multer";
 import xlsx from "xlsx";
+import { WebSocketServer } from "ws";
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL || "postgres://localhost/nvs_pay_log",
@@ -17,6 +21,15 @@ const pool = new Pool({
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(express.static(__dirname));
+
+const broadcast = (payload) => {
+  const message = JSON.stringify(payload);
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  });
+};
 
 const formatMemberName = (id, firstName, lastName, padLength) => {
   const paddedId = String(id).padStart(padLength, "0");
@@ -281,6 +294,8 @@ app.post("/api/members/:id/transactions", express.json(), async (req, res) => {
 
       await client.query("COMMIT");
 
+      broadcast({ type: "memberUpdated", memberId });
+
       res.json({ balance: nextBalance });
     } catch (error) {
       await client.query("ROLLBACK");
@@ -339,6 +354,8 @@ app.delete("/api/members/:id/transactions/last", async (req, res) => {
       ]);
 
       await client.query("COMMIT");
+
+      broadcast({ type: "memberUpdated", memberId });
 
       res.json({ balance: nextBalance, transactionId });
     } catch (error) {
@@ -444,6 +461,8 @@ app.post("/api/members/import", upload.single("file"), async (req, res) => {
 
       await client.query("COMMIT");
 
+      broadcast({ type: "membersUpdated" });
+
       res.json({
         imported: insertResult.rowCount,
         skipped: validMembers.length - insertResult.rowCount,
@@ -461,6 +480,6 @@ app.post("/api/members/import", upload.single("file"), async (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`NVS Pay Log server running on port ${port}`);
 });
