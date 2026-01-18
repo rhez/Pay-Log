@@ -233,6 +233,12 @@ textarea {
   gap: 18px;
   font-size: 22px;
   margin-left: auto;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.radio-set label {
+  white-space: nowrap;
 }
 
 .radio-set input[type="radio"] {

@@ -113,12 +113,18 @@
     const setStatus = (message, state = 'success') => {
       statusText.textContent = message;
       statusBar.classList.remove('status-success', 'status-fail');
+      statusText.classList.remove('status-success', 'status-fail');
+      statusEmoji.classList.remove('status-success', 'status-fail');
       if (state === 'success') {
         statusEmoji.textContent = '✅';
         statusBar.classList.add('status-success');
+        statusText.classList.add('status-success');
+        statusEmoji.classList.add('status-success');
       } else if (state === 'fail') {
         statusEmoji.textContent = '❌';
         statusBar.classList.add('status-fail');
+        statusText.classList.add('status-fail');
+        statusEmoji.classList.add('status-fail');
       }
     };
 
