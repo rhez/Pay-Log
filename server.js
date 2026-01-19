@@ -7,6 +7,7 @@ import multer from "multer";
 import xlsx from "xlsx";
 import { WebSocketServer } from "ws";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +24,18 @@ const upload = multer({ storage: multer.memoryStorage() });
 const sessions = new Map();
 const sessionMaxAgeMs = 8 * 60 * 60 * 1000;
 const cookieSecurityFlags = "HttpOnly; SameSite=Strict";
+const bcryptSaltRounds = 12;
+const looksHashed = (value) => value.startsWith("$2a$") || value.startsWith("$2b$");
+const hashPassword = (password) => bcrypt.hash(password, bcryptSaltRounds);
+const verifyPassword = (password, savedPassword) => {
+  if (!savedPassword) {
+    return Promise.resolve(false);
+  }
+  if (looksHashed(savedPassword)) {
+    return bcrypt.compare(password, savedPassword);
+  }
+  return Promise.resolve(password === savedPassword);
+};
 
 app.use(express.static(__dirname));
 
@@ -287,10 +300,23 @@ app.post("/api/admin/login", express.json(), async (req, res) => {
         return;
       }
       await pool.query('DELETE FROM "Admin"');
-      await pool.query('INSERT INTO "Admin" (password) VALUES ($1)', [password]);
-    } else if (password !== savedPassword) {
-      res.status(401).json({ success: false });
-      return;
+      const hashedPassword = await hashPassword(password);
+      await pool.query('INSERT INTO "Admin" (password) VALUES ($1)', [
+        hashedPassword,
+      ]);
+    } else {
+      const passwordMatches = await verifyPassword(password, savedPassword);
+      if (!passwordMatches) {
+        res.status(401).json({ success: false });
+        return;
+      }
+      if (!looksHashed(savedPassword)) {
+        const hashedPassword = await hashPassword(password);
+        await pool.query('DELETE FROM "Admin"');
+        await pool.query('INSERT INTO "Admin" (password) VALUES ($1)', [
+          hashedPassword,
+        ]);
+      }
     }
 
     const token = createSessionToken();
@@ -336,14 +362,19 @@ app.post(
       const result = await pool.query('SELECT password FROM "Admin" LIMIT 1');
       const savedPassword = result.rows[0]?.password ?? "";
 
-      if (currentPassword !== savedPassword) {
+      const passwordMatches = await verifyPassword(
+        currentPassword,
+        savedPassword
+      );
+      if (!passwordMatches) {
         res.status(401).json({ success: false });
         return;
       }
 
+      const hashedPassword = await hashPassword(newPassword);
       await pool.query('DELETE FROM "Admin"');
       await pool.query('INSERT INTO "Admin" (password) VALUES ($1)', [
-        newPassword,
+        hashedPassword,
       ]);
       res.json({ success: true });
     } catch (error) {
