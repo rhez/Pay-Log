@@ -73,8 +73,15 @@ GRANT ALL PRIVILEGES ON DATABASE nvs_pay_log TO paylog_user;
 
 ### 4) Update the admin password (database-only)
 
-Passwords are hashed, so generate a bcrypt hash and update the `Admin` table
-directly from the VM:
+Passwords are hashed, so you can use the helper script to update the `Admin`
+table directly from the VM (it prompts for current/new/confirm and hides input):
+
+```sh
+./change_pw
+```
+
+If you prefer to apply a hash manually, generate a bcrypt hash and update the
+`Admin` table directly from the VM:
 
 ```sh
 npm run hash-password -- "NEW_PASSWORD"
