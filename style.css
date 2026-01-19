@@ -382,6 +382,11 @@ textarea {
   font-weight: 600;
 }
 
+.modal-card p {
+  margin: 0;
+  font-size: 20px;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

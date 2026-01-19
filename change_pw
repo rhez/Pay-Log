@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  echo "DATABASE_URL is not set." >&2
+  exit 1
+fi
+
+read -r -s -p "Current password: " CURRENT_PASSWORD
+printf '\n'
+read -r -s -p "New password: " NEW_PASSWORD
+printf '\n'
+read -r -s -p "Confirm new password: " CONFIRM_PASSWORD
+printf '\n'
+
+if [[ -z "$CURRENT_PASSWORD" || -z "$NEW_PASSWORD" || -z "$CONFIRM_PASSWORD" ]]; then
+  echo "Password does not match."
+  exit 1
+fi
+
+if [[ "$NEW_PASSWORD" != "$CONFIRM_PASSWORD" ]]; then
+  echo "Password does not match."
+  exit 1
+fi
+
+SAVED_HASH=$(psql "$DATABASE_URL" -t -A -c 'SELECT password FROM "Admin" LIMIT 1;')
+
+if [[ -z "$SAVED_HASH" ]]; then
+  echo "No admin password set in database." >&2
+  exit 1
+fi
+
+PASSWORD_OK=$(node -e "import bcrypt from 'bcryptjs'; const [current, saved] = process.argv.slice(1); if (!current || !saved) { process.exit(2); } bcrypt.compare(current, saved).then(ok => { console.log(ok ? 'true' : 'false'); }).catch(() => { console.log('false'); });" "$CURRENT_PASSWORD" "$SAVED_HASH")
+
+if [[ "$PASSWORD_OK" != "true" ]]; then
+  echo "Password does not match."
+  exit 1
+fi
+
+NEW_HASH=$(npm run -s hash-password -- "$NEW_PASSWORD")
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<SQL
+DELETE FROM "Admin";
+INSERT INTO "Admin" (password) VALUES ('$NEW_HASH');
+SQL
+
+echo "Password updated."
