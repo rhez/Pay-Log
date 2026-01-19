@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+read -r -p "Database user: " DB_USER
+read -r -s -p "Database password: " DB_PASSWORD
+printf '\n'
+
+if [[ -z "$DB_USER" || -z "$DB_PASSWORD" ]]; then
+  echo "Database user and password are required." >&2
+  exit 1
+fi
+
+export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/nvs_pay_log"
+
+echo "DATABASE_URL set for this shell session."
