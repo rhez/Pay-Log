@@ -51,60 +51,58 @@ their balance is preserved. Imports from `.csv` and `.xlsx` both sync the
 member list, removing members (and their transactions) that are not present in
 the file after confirming in the UI.
 
-## Deploy on Google Cloud (Cloud Run + Cloud SQL)
+## Deploy on a VM (Postgres + Node)
 
-These steps create a Postgres database, deploy the Node/Express app to Cloud Run,
-and configure the `DATABASE_URL` connection string.
+These steps run the database and web app on a single VM so the site is always
+available online, and the app can be launched with `npm start`.
 
-### 1) Create a Cloud SQL Postgres instance
+### 1) Provision a VM and open the port
 
-1. In Google Cloud Console, create a project and enable billing.
-2. Enable the **Cloud SQL Admin API** and **Cloud Run API**.
-3. Go to **Cloud SQL** → **Create Instance** → **PostgreSQL**.
-4. Create a database named `nvs_pay_log` and a database user/password.
-5. Note the **instance connection name** in the format:
-   `PROJECT_ID:REGION:INSTANCE_NAME`.
+1. Create a VM (e.g., Google Compute Engine).
+2. Allow inbound traffic on the app port (default `3000`) in the VM firewall.
+3. SSH into the VM.
 
-### 2) Apply the schema
-
-Connect to the database and apply the schema from `db/schema.sql`:
+### 2) Install dependencies
 
 ```sh
-gcloud sql connect INSTANCE_NAME --user=DB_USER
+sudo apt-get update
+sudo apt-get install -y nodejs npm postgresql
 ```
 
-Then in the `psql` prompt:
+### 3) Set up Postgres and schema
+
+```sh
+sudo -u postgres psql
+```
+
+In the `psql` prompt:
 
 ```sql
+CREATE DATABASE nvs_pay_log;
+CREATE USER paylog_user WITH PASSWORD 'CHANGE_ME';
+GRANT ALL PRIVILEGES ON DATABASE nvs_pay_log TO paylog_user;
 \c nvs_pay_log
-\i db/schema.sql
+\i /path/to/Pay-Log/db/schema.sql
 ```
 
-### 3) Deploy to Cloud Run
+### 4) Run the web app with npm
 
-From the repo root:
+From the repo root on the VM:
 
 ```sh
-gcloud config set project PROJECT_ID
-gcloud services enable run.googleapis.com sqladmin.googleapis.com artifactregistry.googleapis.com
-
-gcloud run deploy pay-log \
-  --source . \
-  --region REGION \
-  --allow-unauthenticated \
-  --add-cloudsql-instances=PROJECT_ID:REGION:INSTANCE_NAME \
-  --set-env-vars=DATABASE_URL="postgres://DB_USER:DB_PASSWORD@/nvs_pay_log?host=/cloudsql/PROJECT_ID:REGION:INSTANCE_NAME"
+npm install
+export DATABASE_URL="postgres://paylog_user:CHANGE_ME@localhost/nvs_pay_log"
+npm start
 ```
 
-When the deploy completes, Cloud Run will output a service URL (for example
-`https://pay-log-xxxxx-uc.a.run.app`). Use that URL in the link below.
+Your app will be available at `http://VM_PUBLIC_IP:3000`.
 
 ## Link to the app from another webpage
 
-Use the Cloud Run service URL in a normal link that opens a new tab:
+Use the VM URL in a normal link that opens a new tab:
 
 ```html
-<a href="https://pay-log-xxxxx-uc.a.run.app" target="_blank" rel="noopener noreferrer">
+<a href="http://VM_PUBLIC_IP:3000" target="_blank" rel="noopener noreferrer">
   Open Pay Log
 </a>
 ```
