@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "hash-password": "node -e \"import bcrypt from 'bcryptjs'; const password = process.argv[1]; if (!password) { console.error('Usage: npm run hash-password -- YOUR_PASSWORD'); process.exit(1); } bcrypt.hash(password, 12).then(hash => console.log(hash));\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

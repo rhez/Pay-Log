@@ -77,7 +77,7 @@ Passwords are hashed, so generate a bcrypt hash and update the `Admin` table
 directly from the VM:
 
 ```sh
-node -e "import bcrypt from 'bcryptjs'; bcrypt.hash('NEW_PASSWORD', 12).then(hash => console.log(hash));"
+npm run hash-password -- "NEW_PASSWORD"
 ```
 
 Then in `psql`:

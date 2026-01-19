@@ -155,20 +155,6 @@ const closeConfirmImportModal = () => {
   confirmImportMessage.textContent = '';
 };
 
-const openConfirmImportModal = (message) => {
-  confirmImportMessage.textContent = message;
-  confirmImportModal.classList.add('open');
-  confirmImportConfirmButton.focus();
-  return new Promise((resolve) => {
-    confirmImportResolver = resolve;
-  });
-};
-
-const closeConfirmImportModal = () => {
-  confirmImportModal.classList.remove('open');
-  confirmImportMessage.textContent = '';
-};
-
 const submitLogin = async () => {
   const enteredPassword = loginPasswordInput.value;
   const confirmedPassword = loginPasswordConfirmInput.value;
@@ -573,22 +559,6 @@ loginCancelButton.addEventListener('click', () => {
 
 loginConfirmButton.addEventListener('click', () => {
   submitLogin();
-});
-
-confirmImportCancelButton.addEventListener('click', () => {
-  if (confirmImportResolver) {
-    confirmImportResolver(false);
-    confirmImportResolver = null;
-  }
-  closeConfirmImportModal();
-});
-
-confirmImportConfirmButton.addEventListener('click', () => {
-  if (confirmImportResolver) {
-    confirmImportResolver(true);
-    confirmImportResolver = null;
-  }
-  closeConfirmImportModal();
 });
 
 confirmImportCancelButton.addEventListener('click', () => {
