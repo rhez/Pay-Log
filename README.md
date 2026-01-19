@@ -6,7 +6,7 @@ Open `index.html` directly in a browser (offline is fine) to view the static UI.
 
 ## Backend
 
-This project includes a small Node/Express server backed by Postgres.
+This project includes a small Node/Express server backed by Postgres and runs over HTTP by default.
 
 1. Create the database schema:
 
@@ -23,9 +23,11 @@ This project includes a small Node/Express server backed by Postgres.
 
 The server exposes:
 
-- `GET /api/members` for the member list (pre-formatted with zero-padded IDs).
-- `GET /api/members/:id` for the selected member's balance and transactions.
-- `GET /api/admin/password` and `POST /api/admin/password` to read/write the admin password stored in the database.
+- `GET /api/admin/session` to check whether the admin session is authenticated.
+- `POST /api/admin/login` to authenticate and set the session cookie.
+- `POST /api/admin/logout` to clear the session cookie.
+- `GET /api/members` for the member list (requires login).
+- `GET /api/members/:id` for the selected member's balance and transactions (requires login).
 
 To import members, click **Import Members** and choose a `.csv` or `.xlsx` file
 that includes `id`, `first_name`, and `last_name` columns in any order.
@@ -34,3 +36,75 @@ Imported members start with a balance of `0`. If a member ID already exists,
 their balance is preserved. Imports from `.csv` and `.xlsx` both sync the
 member list, removing members (and their transactions) that are not present in
 the file after confirming in the UI.
+
+## Deploy on a VM (Postgres + Node)
+
+These steps run the database and web app on a single VM so the site is always
+available online, and the app can be launched with `npm start`.
+
+### 1) Provision a VM and open the port
+
+1. Create a VM (e.g., Google Compute Engine).
+2. Allow inbound traffic on the app port (default `3000`) in the VM firewall.
+3. SSH into the VM.
+
+### 2) Install dependencies
+
+```sh
+sudo apt-get update
+sudo apt-get install -y nodejs npm postgresql
+```
+
+### 3) Set up Postgres and schema
+
+```sh
+sudo -u postgres psql
+```
+
+In the `psql` prompt:
+
+```sql
+CREATE DATABASE nvs_pay_log;
+CREATE USER paylog_user WITH PASSWORD 'CHANGE_ME';
+GRANT ALL PRIVILEGES ON DATABASE nvs_pay_log TO paylog_user;
+\c nvs_pay_log
+\i /path/to/Pay-Log/db/schema.sql
+```
+
+### 4) Update the admin password (database-only)
+
+Passwords are hashed, so generate a bcrypt hash and update the `Admin` table
+directly from the VM:
+
+```sh
+npm run hash-password -- "NEW_PASSWORD"
+```
+
+Then in `psql`:
+
+```sql
+DELETE FROM "Admin";
+INSERT INTO "Admin" (password) VALUES ('PASTE_BCRYPT_HASH_HERE');
+```
+
+### 5) Run the web app with npm
+
+From the repo root on the VM:
+
+```sh
+npm install
+export DATABASE_URL="postgres://paylog_user:CHANGE_ME@localhost/nvs_pay_log"
+npm start
+```
+
+Your app will be available at `http://VM_PUBLIC_IP:3000`.
+
+## Link to the app from another webpage
+
+Use the VM URL in a normal link that opens a new tab:
+
+```html
+<a href="http://VM_PUBLIC_IP:3000" target="_blank" rel="noopener noreferrer">
+  Open Pay Log
+</a>
+```
