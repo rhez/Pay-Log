@@ -339,51 +339,6 @@ app.post("/api/admin/logout", (req, res) => {
 });
 
 app.post(
-  "/api/admin/password",
-  express.json(),
-  requireAuth,
-  async (req, res) => {
-    const { currentPassword, newPassword, confirmPassword } = req.body ?? {};
-    if (
-      typeof currentPassword !== "string" ||
-      typeof newPassword !== "string" ||
-      typeof confirmPassword !== "string"
-    ) {
-      res.status(400).json({ success: false });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      res.status(400).json({ success: false });
-      return;
-    }
-
-    try {
-      const result = await pool.query('SELECT password FROM "Admin" LIMIT 1');
-      const savedPassword = result.rows[0]?.password ?? "";
-
-      const passwordMatches = await verifyPassword(
-        currentPassword,
-        savedPassword
-      );
-      if (!passwordMatches) {
-        res.status(401).json({ success: false });
-        return;
-      }
-
-      const hashedPassword = await hashPassword(newPassword);
-      await pool.query('DELETE FROM "Admin"');
-      await pool.query('INSERT INTO "Admin" (password) VALUES ($1)', [
-        hashedPassword,
-      ]);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ success: false });
-    }
-  }
-);
-
-app.post(
   "/api/members/:id/transactions",
   express.json(),
   requireAuth,

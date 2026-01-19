@@ -21,12 +21,6 @@ const loginPasswordInput = document.querySelector('#loginPassword');
 const loginPasswordConfirmInput = document.querySelector('#loginPasswordConfirm');
 const loginCancelButton = document.querySelector('#loginCancel');
 const loginConfirmButton = document.querySelector('#loginConfirm');
-const changePasswordModal = document.querySelector('#changePasswordModal');
-const currentPasswordInput = document.querySelector('#currentPassword');
-const newPasswordInput = document.querySelector('#newPassword');
-const confirmNewPasswordInput = document.querySelector('#confirmNewPassword');
-const changePasswordCancelButton = document.querySelector('#changePasswordCancel');
-const changePasswordConfirmButton = document.querySelector('#changePasswordConfirm');
 const confirmImportModal = document.querySelector('#confirmImportModal');
 const confirmImportMessage = document.querySelector('#confirmImportMessage');
 const confirmImportCancelButton = document.querySelector('#confirmImportCancel');
@@ -101,14 +95,6 @@ const renderMenu = () => {
     });
     menuOptions.append(loginButton);
   } else {
-    const changeButton = document.createElement('button');
-    changeButton.type = 'button';
-    changeButton.className = 'menu-item';
-    changeButton.textContent = 'Change Password';
-    changeButton.addEventListener('click', () => {
-      closeMenu();
-      handleChangePassword();
-    });
     const logoutButton = document.createElement('button');
     logoutButton.type = 'button';
     logoutButton.className = 'menu-item';
@@ -117,16 +103,12 @@ const renderMenu = () => {
       closeMenu();
       logout();
     });
-    menuOptions.append(changeButton, logoutButton);
+    menuOptions.append(logoutButton);
   }
 };
 
 const handleLogin = () => {
   openLoginModal();
-};
-
-const handleChangePassword = () => {
-  openChangePasswordModal();
 };
 
 menuButton.addEventListener('click', (event) => {
@@ -159,19 +141,18 @@ const closeLoginModal = () => {
   loginPasswordConfirmInput.value = '';
 };
 
-const openChangePasswordModal = () => {
-  currentPasswordInput.value = '';
-  newPasswordInput.value = '';
-  confirmNewPasswordInput.value = '';
-  changePasswordModal.classList.add('open');
-  currentPasswordInput.focus();
+const openConfirmImportModal = (message) => {
+  confirmImportMessage.textContent = message;
+  confirmImportModal.classList.add('open');
+  confirmImportConfirmButton.focus();
+  return new Promise((resolve) => {
+    confirmImportResolver = resolve;
+  });
 };
 
-const closeChangePasswordModal = () => {
-  changePasswordModal.classList.remove('open');
-  currentPasswordInput.value = '';
-  newPasswordInput.value = '';
-  confirmNewPasswordInput.value = '';
+const closeConfirmImportModal = () => {
+  confirmImportModal.classList.remove('open');
+  confirmImportMessage.textContent = '';
 };
 
 const openConfirmImportModal = (message) => {
@@ -223,41 +204,6 @@ const submitLogin = async () => {
   renderMenu();
   setStatus('Logged in successfully.', 'success');
   await loadMembers();
-};
-
-const submitChangePassword = async () => {
-  const currentPassword = currentPasswordInput.value;
-  const newPassword = newPasswordInput.value;
-  const confirmedPassword = confirmNewPasswordInput.value;
-
-  if (!currentPassword || !newPassword || newPassword !== confirmedPassword) {
-    setStatus('Password does not match.', 'fail');
-    return;
-  }
-
-  const response = await fetch('/api/admin/password', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      currentPassword,
-      newPassword,
-      confirmPassword: confirmedPassword,
-    }),
-  });
-
-  if (response.status === 401) {
-    handleUnauthorized();
-    return;
-  }
-
-  const data = await response.json().catch(() => ({ success: false }));
-  if (!response.ok || !data.success) {
-    setStatus('Failed to update password.', 'fail');
-    return;
-  }
-
-  closeChangePasswordModal();
-  setStatus('Password updated successfully.', 'success');
 };
 
 const getTodayDate = () => {
@@ -629,12 +575,20 @@ loginConfirmButton.addEventListener('click', () => {
   submitLogin();
 });
 
-changePasswordCancelButton.addEventListener('click', () => {
-  closeChangePasswordModal();
+confirmImportCancelButton.addEventListener('click', () => {
+  if (confirmImportResolver) {
+    confirmImportResolver(false);
+    confirmImportResolver = null;
+  }
+  closeConfirmImportModal();
 });
 
-changePasswordConfirmButton.addEventListener('click', () => {
-  submitChangePassword();
+confirmImportConfirmButton.addEventListener('click', () => {
+  if (confirmImportResolver) {
+    confirmImportResolver(true);
+    confirmImportResolver = null;
+  }
+  closeConfirmImportModal();
 });
 
 confirmImportCancelButton.addEventListener('click', () => {
