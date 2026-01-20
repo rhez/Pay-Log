@@ -10,6 +10,11 @@ if [[ -z "$DB_USER" || -z "$DB_PASSWORD" ]]; then
   exit 1
 fi
 
-export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/nvs_pay_log"
+DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/nvs_pay_log"
 
-echo "DATABASE_URL set for this shell session."
+if [[ "${0}" == "bash" || "${0}" == "zsh" || "${BASH_SOURCE[0]:-}" != "" ]]; then
+  export DATABASE_URL
+  echo "DATABASE_URL set for this shell session."
+else
+  echo "export DATABASE_URL=\"${DATABASE_URL}\""
+fi

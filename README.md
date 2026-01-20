@@ -77,7 +77,7 @@ Passwords are hashed, so you can use the helper script to update the `Admin`
 table directly from the VM (it prompts for current/new/confirm and hides input):
 
 ```sh
-./db_cred
+source ./db_cred
 ./change_pw
 ```
 

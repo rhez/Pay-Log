@@ -37,6 +37,41 @@ const verifyPassword = (password, savedPassword) => {
   return Promise.resolve(password === savedPassword);
 };
 
+app.disable("x-powered-by");
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  );
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  next();
+});
+
+app.use((req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    next();
+    return;
+  }
+  const origin = req.headers.origin;
+  if (!origin) {
+    next();
+    return;
+  }
+  const host = req.headers.host;
+  const allowedOrigins = new Set([
+    `http://${host}`,
+    `https://${host}`,
+  ]);
+  if (!allowedOrigins.has(origin)) {
+    res.status(403).json({ success: false });
+    return;
+  }
+  next();
+});
+
 app.use(express.static(__dirname));
 
 const parseCookies = (cookieHeader = "") =>
